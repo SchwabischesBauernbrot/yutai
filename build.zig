@@ -10,7 +10,7 @@ pub fn build(b: *std.build.Builder) !void {
     const mode = b.standardOptimizeOption(.{});
 
     const exe = b.addExecutable(.{
-        .name = "zchan",
+        .name = "yutai",
         .root_source_file = .{ .path = "src/main.zig" },
         .target = target,
         .optimize = mode,

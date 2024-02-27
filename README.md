@@ -30,4 +30,4 @@ Note that you have to restart the imageboard for the `config.json` changes to ta
 
 Running
 -------
-    zig build -Doptimize=ReleaseSafe run
+    zig build run
