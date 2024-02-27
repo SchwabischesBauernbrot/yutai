@@ -1,0 +1,27 @@
+<?
+    const value = context.value;
+    const user_data_opt = context.user_data_opt;
+    const flags = root.model.user.flags(user_data_opt);
+    const algm = flags.atLeastGlobalMod();
+?>
+<tr>
+    <th>
+        Captcha
+    </th>
+    <td>
+        <? if(!algm) { ?>
+        <input
+            style="float:left;"
+            type="text" name="captcha"
+            size="22"
+            maxlength="6"
+            autocomplete="off"
+        >
+        <? } ?>
+        <input style="margin-left:2px;" type="submit" value=<{value}>>
+        <? if(!algm) { ?>
+        <br>
+        <img src="/captcha">
+        <? } ?>
+    </td>
+</tr>

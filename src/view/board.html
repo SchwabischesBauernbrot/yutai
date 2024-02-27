@@ -1,0 +1,59 @@
+<?
+    const board = context.board;
+    //const post = context.thread;
+    const threads = context.threads;
+    const replies = context.replies;
+    const index = context.index;
+    
+    var buff = [_]u8{0}**256;
+    const action = try std.fmt.bufPrint(&buff, "/{s}/", .{board.board});
+?>
+
+<html>
+<head>
+    <? _ = try partial.header.render(output, .{}); ?>
+    <title>
+        /<(board.board)>/ - <(board.name)>
+    </title>
+</head>
+<body>
+    <? _ = try partial.top.render(output, context); ?>
+    <header>
+        <h1>
+            /<(board.board)>/ - <(board.name)>
+        </h1>
+    </header>
+    <? _ = try partial.post_form.render(output, .{
+        .action = action,
+        .user_data_opt = context.user_data_opt,
+    }); ?>
+    <hr>
+    <? _ = try partial.board_pages.render(output, .{
+        .board = board.board,
+        .page = context.page,
+        .pages = context.pages,
+    }); ?>
+    <a href="/">Return</a>
+    <hr>
+    <form name="postcontrols" method="post">
+        <input type="hidden" name="board" value="<(board.board)>">
+        <? for(threads, 0..) |thread_rows, i| { ?>
+            <? _ = try partial.thread.render(output, .{
+                .board = board,
+                .replies_rows = replies[i],
+                .thread_rows = thread_rows,
+                .index = index,
+                .user_data_opt = context.user_data_opt,
+                .config = context.config,
+            }); ?>
+            <hr>
+        <? } ?>
+        <? _ = try partial.misc_form.render(output, context); ?>
+    </form>
+    <? _ = try partial.board_pages.render(output, .{
+        .board = board.board,
+        .page = context.page,
+        .pages = context.pages,
+    }); ?>
+    <a href="/">Return</a>
+</body>

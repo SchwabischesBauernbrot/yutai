@@ -1,0 +1,30 @@
+<?
+    const post = context.post;
+    const flags = context.flags;
+    const config = context.config;
+
+    const file_state = post.file_state.?;
+    const hash = post.hash.?;
+    const ext = post.ext.?;
+
+    const exists = file_state == .none;
+    const not_removed = post.image_removed.? == 0;
+    const public = exists and not_removed;
+    const can_see = public or flags.atLeastMod();
+?>
+
+<? if(exists and can_see) { ?>
+    <a href="/static/images/<{hash}><{ext}>" target="_blank">
+        <? if(post.thumb_width != null) {?>
+            <img class="post-image"
+                src="/static/thumbs/<{hash}>.jpg"
+                style="width:<[post.thumb_width.?]>px;height:<[post.thumb_height.?]>px"
+                alt="" 
+            >
+        <? } else { ?>
+            <img class="post-image" src="/static/<{config.default_file_thumbnail}>">
+        <? } ?>
+    </a>
+<? } else { ?>
+    <img class="post-image" src="/static/<{config.deleted_file_thumbnail}>">
+<? } ?>

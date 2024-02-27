@@ -1,0 +1,2 @@
+replies: usize,
+images: usize,

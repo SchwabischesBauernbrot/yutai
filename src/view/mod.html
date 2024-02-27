@@ -1,0 +1,94 @@
+<?
+    const board = context.board;
+    const mods = context.mods;
+?>
+
+<html>
+<head>
+    <? _ = try partial.header.render(output, .{}); ?>
+    <title>
+        Dashboard - /<(board.board)>/
+    </title>
+    <style>
+        form {
+            margin-bottom: unset;
+        }
+    </style>
+</head>
+<body>
+    <? _ = try partial.top.render(output, context); ?>
+    <header>
+        <h1>
+            Dashboard - /<(board.board)>/
+        </h1>
+    </header>
+    <center>
+        [<a href="/<(board.board)>/bans/all/1"> bans </a>]
+        [<a href="/<(board.board)>/reports/all/1"> reports </a>]
+        [<a href="/<(board.board)>/logs/1"> logs </a>]
+    </center>
+    <hr>
+    <form name="name" method="post" action="update/name">
+        <table>
+            <tr>
+                <th>
+                    New Name
+                </th>
+                <td>
+                    <input type="text" name="new_name" size="25" maxlength="35" value="<(board.name)>">
+                </td>
+            </tr>
+            <? _ = try partial.captcha_row.render(output, .{
+                .user_data_opt = context.user_data_opt,
+                .value = "Update",
+            }); ?>
+        </table>
+    </form>
+    <hr>
+    <form name="description" method="post" action="update/description">
+        <table>
+            <tr>
+                <th>
+                    New Description
+                </th>
+                <td>
+                    <textarea name="new_description" rows="5" cols="35" value="<(board.description)>"><(board.description)></textarea>
+                </td>
+            </tr>
+            <? _ = try partial.captcha_row.render(output, .{
+                .user_data_opt = context.user_data_opt,
+                .value = "Update",
+            }); ?>
+        </table>
+    </form>
+    <hr>
+    <h1>Moderators</h1>
+    <? for(mods) |mod| { ?>
+    <div class="report">
+        Name: <( mod.name )>
+        <a title="Remove moderator" href="mod/remove/<( mod.name )>">
+            Remove
+        </a>
+        <br>
+    </div>
+    <? } ?>
+    <form name="add_mod" method="post" action="mod/add">
+        <table>
+            <tr>
+                <th>
+                    New Moderator
+                </th>
+                <td>
+                    <input type="text" name="new_mod" size="25" maxlength="35">
+                </td>
+            </tr>
+            <? _ = try partial.captcha_row.render(output, .{
+                .user_data_opt = context.user_data_opt,
+                .value = "Add",
+            }); ?>
+        </table>
+    </form>
+    <hr>
+    <a href="/<(board.board)>/">Return</a>
+</body>
+</html>

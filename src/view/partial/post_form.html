@@ -1,0 +1,53 @@
+<form
+    name="post"
+    enctype="multipart/form-data"
+    method="post"
+    action="<(context.action)>"
+>
+    <table>
+        <tr>
+            <th>
+                Name
+            </th>
+            <td>
+                <input type="text" name="name" size="25" maxlength="35" autocomplete="off">
+            </td>
+        </tr>
+        <tr>
+            <th>
+                Email
+            </th>
+            <td>
+                <input type="text" name="email" size="25" maxlength="40" autocomplete="off">
+            </td>
+        </tr>
+        <tr>
+            <th>
+                Subject
+            </th>
+            <td>
+                <input type="text" name="subject" size="25" maxlength="100" autocomplete="off">
+            </td>
+        </tr>
+        <tr>
+            <th>
+                Comment
+            </th>
+            <td>
+                <textarea name="body" id="body" rows="5" cols="35"></textarea>
+            </td>
+        </tr>
+        <tr>
+            <th>
+                File
+            </th>
+            <td>
+                <input type="file" name="file">
+            </td>
+        </tr>
+        <? _ = try partial.captcha_row.render(output, .{
+            .user_data_opt = context.user_data_opt,
+            .value = "Post",
+        }); ?>
+    </table>
+</form>

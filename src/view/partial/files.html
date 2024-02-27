@@ -1,0 +1,90 @@
+<?
+    const post_rows = context.post_rows;
+    const multifile: bool = post_rows.len > 1;
+    
+    const user_data_opt = context.user_data_opt;
+    const flags = root.model.user.flags(user_data_opt);
+?>
+
+<div class="files">
+<? for(post_rows) |row| { ?>
+    <? if(row.post_image_id == null) continue; ?>
+    <?
+        const filename = row.filename.?;
+        const hash = row.hash.?;
+        const ext = row.ext.?;
+        const id = row.post_image_id.?;
+        const file_state = row.file_state.?;
+        const file_date = row.file_date.?;
+        
+        const exists = file_state == .none;
+        const not_removed = row.image_removed.? == 0;
+        const public = exists and not_removed;
+        const can_see = public or flags.atLeastMod();
+        
+        var buff: [32]u8 = undefined;
+        const size_str = try util.sizeStr(&buff, row.size.?);
+        
+        const multi_width = row.thumb_width orelse context.config.thumbnail_size;
+    ?>
+    <? if(multifile) { ?>
+        <div class="file multifile" style="width:<[ multi_width ]>px">
+    <? } else { ?>
+        <div class="file">
+    <? } ?>
+    <? if(can_see) { ?>
+        <p class="fileinfo">
+            File:
+            <a href="/static/images/<{hash}><{ext}>">
+                <? if(filename.len <= 20) { ?>
+                    <(filename)>
+                <? } else { ?>
+                    <abbr title="<(filename)>"><(filename[0..20])>...</abbr>
+                <? } ?>
+            </a>
+            <span class="unimportant">(<{size_str}>
+            <? if(row.width != null) { ?>
+                <? const width = row.width.?; ?>
+                <? const height = row.height.?; ?>
+                , <[width]>x<[height]>
+            <? } ?>
+            )</span>
+            <? if(flags.atLeastMod()) { ?>
+                <? if(public) { ?>
+                    <a href="/<(row.board)>/mod/image/delete/<[id]>">[Remove File]</a>
+                <? } else { ?>
+                    <span style="color:red">[File Removed]</span>
+                <? } ?>
+            <? } ?>
+            <? if(flags.atLeastGlobalMod()) { ?>
+                <? if(exists) { ?>
+                    <a href="/mod/eraseImage/<{hash}>">[Erase File]</a>
+                <? } else if (file_state == .removed) { ?>
+                    <span style="color:red">
+                        [File Erased on
+                            <? _ = try partial.date.render(output, .{.date = file_date}); ?>
+                            by: <(row.file_moderator.?)>
+                        ]
+                    </span>
+                <? } ?>
+                <? if(file_state != .banned) { ?>
+                    <a href="/mod/banImage/<{hash}>">[Ban File]</a>
+                <? } else { ?>
+                    <span style="color:red">
+                        [File Banned on
+                            <? _ = try partial.date.render(output, .{.date = file_date}); ?>
+                            by: <(row.file_moderator.?)>
+                        ]
+                    </span>
+                <? } ?>
+            <? } ?>
+        </p>
+    <? } ?>
+    <? _ = try partial.image.render(output, .{
+        .post = row,
+        .flags = flags,
+        .config = context.config,
+    }); ?>
+    </div>
+<? } ?>
+</div>

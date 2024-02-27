@@ -1,0 +1,108 @@
+<?
+    const mods = context.mods;
+    const boards = context.boards;
+?>
+
+<html>
+<head>
+    <? _ = try partial.header.render(output, .{}); ?>
+    <title>
+        Global Dashboard
+    </title>
+    <style>
+        form {
+            margin-bottom: unset;
+        }
+    </style>
+</head>
+<body>
+    <? _ = try partial.top.render(output, context); ?>
+    <header>
+        <h1>
+            Global Dashboard
+        </h1>
+    </header>
+    <center>
+        [<a href="/bans/all/1"> bans </a>]
+        [<a href="/reports/all/1"> reports </a>]
+        [<a href="/logs/1"> logs </a>]
+    </center>
+    <hr>
+    <h1>Moderators</h1>
+    <? for(mods) |mod| { ?>
+    <div class="report">
+        Name: <( mod.name )>
+        <a title="Remove moderator" href="mod/removeMod/<( mod.name )>">
+            Remove
+        </a>
+        <br>
+    </div>
+    <? } ?>
+    <form name="add_mod" method="post" action="mod/addMod">
+        <table>
+            <tr>
+                <th>
+                    New Moderator
+                </th>
+                <td>
+                    <input type="text" name="new_mod" size="25" maxlength="35">
+                    <input type="submit" value="Add">
+                </td>
+            </tr>
+        </table>
+    </form>
+    <hr>
+    <h1>Boards</h1>
+    <? for(boards) |board| { ?>
+    <div class="report">
+        <a href="/<{board.board}>/">
+            /<{board.board}>/
+        </a>
+        - <{board.name}>
+        <a title="Remove board" href="mod/removeBoard/<( board.board )>">
+            Remove
+        </a>
+        <br>
+    </div>
+    <? } ?>
+    <form name="add_mod" method="post" action="mod/addBoard">
+        <table>
+            <tr>
+                <th>
+                    New Board
+                </th>
+                <td>
+                    <input type="text" name="board" size="25" maxlength="35">
+                    <input type="submit" value="Add">
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    Name
+                </th>
+                <td>
+                    <input type="text" name="name" size="25" maxlength="35">
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    Description
+                </th>
+                <td>
+                    <textarea name="description" id="description" rows="5" cols="35"></textarea>
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    Owner
+                </th>
+                <td>
+                    <input type="text" name="owner" size="25" maxlength="35">
+                </td>
+            </tr>
+        </table>
+    </form>
+    <hr>
+    <a href="/">Return</a>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<?
+    const config = context.config;
+    const reports = context.reports;
+    
+    const url = switch(context.state) {
+        .all => "/reports/all/",
+        .open => "/reports/open/",
+        .closed => "/reports/closed/",
+    };
+    
+    const user_data_opt = context.user_data_opt;
+    const flags = root.model.user.flags(user_data_opt);
+?>
+
+<html>
+<head>
+    <? _ = try partial.header.render(output, .{}); ?>
+    <title>
+        Global Reports
+    </title>
+</head>
+<body>
+    <? _ = try partial.top.render(output, context); ?>
+    <header>
+        <h1>
+            Global Reports
+        </h1>
+    </header>
+    <center> <div class="pages">
+        <a <? if(context.state != .all) { ?> href="/reports/all/1" <? } else { ?> class="selected" <? } ?> > all </a>
+        <a <? if(context.state != .open) { ?> href="/reports/open/1" <? } else { ?> class="selected" <? }  ?> > open </a>
+        <a <? if(context.state != .closed) { ?> href="/reports/closed/1" <? } else { ?> class="selected" <? }  ?> > closed </a>
+    </div> </center>
+    <? _ = try partial.pages.render(output, .{
+        .page = context.page,
+        .pages = context.pages,
+        .url = url
+    }); ?>
+    <form name="postcontrols" method="post" action="/reports/close">
+    <? for(reports) |report| { ?>
+    <div class="report">
+        <hr>
+        <input
+            type="checkbox"
+            class="delete"
+            name="report_<[report.report_id]>"
+            id="report_<[report.report_id]>"
+        >
+        Board: <a href="/<( report.board )>/"><( report.board )></a>
+        Post: <a href="/<(report.board)>/res/<[report.thread]>#<[report.post]>">&gt&gt<[report.post]></a>
+        Date: <? _ = try partial.date.render(output, .{.date = report.date}); ?>
+        Reported by: <? _ = try partial.global_id.render(output, .{
+            .address = report.address,
+            .salt = config.address_salt,
+        }); ?> <? if(flags.root) { ?>(<{report.address}>)<? } ?>
+        <br>
+        Reason: <( report.reason )>
+        <br>
+    </div>
+    <? } ?>
+    <hr>
+    <table>
+        <tr>
+            <th colspan=2>
+                Close Report
+            </th>
+        </tr>
+        <tr>
+            <th>
+                Message
+            </th>
+            <td>
+                <input id="message" type="text" name="message" size="30">
+                <input style="margin-left:2px;" type="submit" name="close" value="Close">
+            </td>
+        </tr>
+    </table>
+    </form>
+    <a href="/mod">Return</a>
+</body>

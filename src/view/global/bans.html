@@ -1,0 +1,74 @@
+<?
+    const config = context.config;
+    const bans = context.bans;
+    
+    const url = switch(context.state) {
+        .all => "/bans/all",
+        .expired => "/bans/expired",
+        .temporary => "/bans/temporary",
+        .permanent => "/bans/permanent",
+    };
+    const date = std.time.timestamp();
+    
+    const user_data_opt = context.user_data_opt;
+    const flags = root.model.user.flags(user_data_opt);
+?>
+
+<html>
+<head>
+    <? _ = try partial.header.render(output, .{}); ?>
+    <title>
+        Global Bans
+    </title>
+</head>
+<body>
+    <? _ = try partial.top.render(output, context); ?>
+    <header>
+        <h1>
+            Global Bans
+        </h1>
+    </header>
+    <center> <div class="pages">
+        <a <? if(context.state != .all) { ?> href="/bans/all/1" <? } else { ?> class="selected" <? } ?> > all </a>
+        <a <? if(context.state != .expired) { ?> href="/bans/expired/1" <? } else { ?> class="selected" <? }  ?> > expired </a>
+        <a <? if(context.state != .temporary) { ?> href="/bans/temporary/1" <? } else { ?> class="selected" <? }  ?> > temporary </a>
+        <a <? if(context.state != .permanent) { ?> href="/bans/permanent/1" <? } else { ?> class="selected" <? }  ?> > permanent </a>
+    </div> </center>
+    <? _ = try partial.pages.render(output, .{
+        .page = context.page,
+        .pages = context.pages,
+        .url = url
+    }); ?>
+    <? for(bans) |ban| { ?>
+    <div class="report">
+        <hr>
+        Address: <? _ = try partial.global_id.render(output, .{
+            .address = ban.address,
+            .salt = config.address_salt,
+        }); ?> <? if(flags.root) { ?>(<{ban.address}>)<? } ?>
+        Date: <? _ = try partial.date.render(output, .{.date = ban.date}); ?>
+        Banned by: <( ban.moderator )>
+        Expires: <? if(ban.expires != 0) { ?>
+            <? _ = try partial.date.render(output, .{.date = ban.expires}); ?>
+        <? } else { ?>
+            Never
+        <? } ?>
+        <? if (!ban.expired(date)) { ?> (
+        <a title="Discard ban" href="/bans/dismiss/<[ ban.ban_id ]>">
+            Dismiss
+        </a>
+        ) <? } ?>
+        <br>
+        Reason: <( ban.reason )>
+        <br>
+    </div>
+    <? } ?>
+    <hr>
+    <? _ = try partial.pages.render(output, .{
+        .page = context.page,
+        .pages = context.pages,
+        .url = url
+    }); ?>
+    <a href="/mod">Return</a>
+</body>
+</html>

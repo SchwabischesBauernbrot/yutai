@@ -1,0 +1,60 @@
+<?
+    const address = context.address;
+    const board = context.board;
+?>
+
+<html>
+<head>
+    <? _ = try partial.header.render(output, .{}); ?>
+    <title> Ban <(address)> - /<(board)>/ </title>
+</head>
+<body>
+    <? _ = try partial.top.render(output, context); ?>
+    <header>
+        <h1> Ban <(address)> - /<(board)>/ </h1>
+    </header>
+    <center>
+        <p>Length Format: { 0 | [&lt;months&gt;M][&lt;weeks&gt;w][&lt;days&gt;d][&lt;hours&gt;h][&lt;minutes&gt;m] }</p>
+        <p>Example:</p>
+        2M6d = Two months and six days.
+        <br>
+        3w6h30m = Three weeks, six hours and 30 minutes.
+        <br>
+        0 = Permanent.
+    </center>
+    <hr>
+    <form name="ban" method="post">
+        <table>
+            <tr>
+                <th>
+                    Length
+                </th>
+                <td>
+                    <input type="text" name="length" size="25" maxlength="35">
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    Range
+                </th>
+                <td>
+                    <select name="range">
+                        <option value="single">Single</option>
+                        <option value="small">Small</option>
+                        <option value="large">Large</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    Reason
+                </th>
+                <td>
+                    <input type="text" name="reason" size="30" >
+                    <input style="margin-left:2px;" type="submit" name="ban" value="Ban">
+                </td>
+            </tr>
+        </table>
+    </form>
+    <hr>
+</body>

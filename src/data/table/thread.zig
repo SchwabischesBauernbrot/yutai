@@ -1,0 +1,5 @@
+board: []const u8,
+post: usize,
+address_salt: []const u8,
+last_reply: usize,
+sticky: bool,

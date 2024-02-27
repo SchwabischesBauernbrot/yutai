@@ -1,0 +1,7 @@
+post_image_id: usize,
+hash: []const u8,
+board: []const u8,
+post: usize,
+filename: []const u8,
+image_removed: usize,
+image_moderator: []const u8,

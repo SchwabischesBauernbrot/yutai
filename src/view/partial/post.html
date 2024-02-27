@@ -1,0 +1,103 @@
+<?
+    const post_rows = context.post_rows;
+    const post = post_rows[0];
+    const index = context.index;
+    const thread = context.thread;
+    const board = context.board;
+    const config = context.config;
+    
+    const user_data_opt = context.user_data_opt;
+    const flags = root.model.user.flags(user_data_opt);
+    const is_op = thread == post.post;
+    const is_thread = @hasField(@TypeOf(post), "sticky");
+    
+    const writeBody = util.writeBody;
+?>
+
+<? if(is_op) { ?>
+    <? _ = try partial.files.render(output, context); ?>
+<? } ?>
+<p class="intro" id="<[ post.post ]>">
+    <input
+        type="checkbox"
+        class="delete"
+        name="post_<[thread]>_<[ post.post ]>"
+        id="post_<[thread]>_<[ post.post ]>"
+    >
+    <label for="post_<[thread]>_<[ post.post ]>">
+        <? if(post.subject) |subject| { ?>
+            <span class="subject"><( subject )></span> 
+        <? } ?>
+        <? if(post.email) |email| { ?>
+            <a class="email" href="mailto:<( email )>">
+        <? } ?>
+        <span class="name">
+            <( post.name )>
+        </span>
+        <? if(post.email != null) { ?>
+            </a>
+        <? } ?>
+        <? _ = try partial.date.render(output, .{.date = post.date}); ?>
+        <? if((flags.atLeastMod()) and post.removed != 0) { ?>
+        <span style="color:red">
+            [Deleted on
+            <? _ = try partial.date.render(output, .{.date = post.removed}); ?>
+            <? if(post.moderator) |moderator| { ?> by: <(moderator)> <? } ?>
+            <? if(post.reason) |reason| { ?> Reason: <(reason)> <? } ?>
+            ]
+        </span>
+        <? } ?>
+    </label>
+    <? if(flags.atLeastMod()) { ?>
+        ID: <? _ = try partial.id.render(output, .{
+            .board = post.board,
+            .address = post.address,
+            .salt = board.address_salt,
+        }); ?>
+    <? } ?>
+    <? if(flags.atLeastGlobalMod()) { ?>
+        Global ID: <? _ = try partial.global_id.render(output, .{
+            .address = post.address,
+            .salt = config.address_salt,
+        }); ?>
+    <? } ?>
+    <? if(flags.root) { ?>
+        IP: <{post.address}>
+    <? } ?>
+    <a class="post_no" href="#<[post.post]>">No.</a>
+    <[ post.post ]>
+    <? if(is_thread) { ?>
+        <? if(post.sticky) { ?>
+            (<strong>Sticky</strong>)
+        <? } ?>
+    <? } ?>
+    <? if(index) { ?>
+        <a href="/<( post.board )>/res/<[ post.post ]>">
+            [Reply]
+        </a>
+    <? } ?>
+    <? if(is_thread) { ?>
+        <? if(flags.atLeastMod()) { ?>
+            <? if(post.sticky) { ?>
+                <a href="/<(post.board)>/unsticky/<[post.post]>">
+                    [Unsticky]
+                </a>
+            <? } else { ?>
+                <a href="/<(post.board)>/sticky/<[post.post]>">
+                    [Sticky]
+                </a>
+            <? } ?>
+        <? } ?>
+    <? } ?>
+    <? if(flags.atLeastGlobalMod()) { ?>
+        <a href="/<(post.board)>/post/mod/permanent_delete/<[post.post]>">
+            [Remove]
+        </a>
+    <? } ?>
+</p>
+<? if(thread != post.post) { ?>
+    <? _ = try partial.files.render(output, context); ?>
+<? } ?>
+<div class="body" <? if(post_rows.len > 1) { ?> style="clear:both" <? } ?>>
+    <? _ = try writeBody(output, post); ?>
+</div>

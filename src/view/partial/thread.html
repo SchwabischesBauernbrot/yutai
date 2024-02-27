@@ -1,0 +1,21 @@
+<?
+    const replies_rows = context.replies_rows;
+    const thread_rows = context.thread_rows;
+    const post = thread_rows[0];
+    const index = context.index;
+    
+    const renderPost = util.renderPost;
+?>
+
+<div id="thread_<[post.post]>">
+<div class="post op">
+    <? try renderPost(output, context, partial.post, thread_rows, index); ?>
+</div>
+<?
+    for(replies_rows) |replies| {
+        try renderPost(output, context, partial.reply, replies, false);
+    }
+?>
+<br class="clear">
+</div>
+<br>

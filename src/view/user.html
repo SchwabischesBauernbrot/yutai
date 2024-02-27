@@ -1,0 +1,41 @@
+<?
+    const user = context.user;
+?>
+
+<html>
+<head>
+    <? _ = try partial.header.render(output, .{}); ?>
+    <title>
+        User Dashboard - <(user.name)>
+    </title>
+    <style>
+        form {
+            margin-bottom: unset;
+        }
+    </style>
+</head>
+<body>
+    <? _ = try partial.top.render(output, context); ?>
+    <header>
+        <h1>
+            User Dashboard - <(user.name)>
+        </h1>
+    </header>
+    <hr>
+    <form name="new_pass" method="post" action="update/pass">
+        <table>
+            <tr>
+                <th>
+                    New Password
+                </th>
+                <td>
+                    <input type="password" name="new_pass" size="25" maxlength="40">
+                    <input type="submit" value="Update">
+                </td>
+            </tr>
+        </table>
+    </form>
+    <hr>
+    <a href="/">Return</a>
+</body>
+</html>

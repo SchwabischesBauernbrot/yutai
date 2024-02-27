@@ -1,0 +1,91 @@
+<?
+    const reports = context.reports;
+    const board = context.board;
+    
+    var buff = [_]u8{0}**256;
+    const fmt = switch(context.state) {
+        .all => "/{s}/reports/all/",
+        .open => "/{s}/reports/open/",
+        .closed => "/{s}/reports/closed/",
+    };
+    const url = try std.fmt.bufPrint(&buff, fmt, .{board.board});
+    
+    const user_data_opt = context.user_data_opt;
+    const flags = root.model.user.flags(user_data_opt);
+?>
+
+<html>
+<head>
+    <? _ = try partial.header.render(output, .{}); ?>
+    <title>
+        Reports - /<(board.board)>/
+    </title>
+</head>
+<body>
+    <? _ = try partial.top.render(output, context); ?>
+    <header>
+        <h1>
+            Reports - /<(board.board)>/
+        </h1>
+    </header>
+    <center> <div class="pages">
+        <a <? if(context.state != .all) { ?> href="/<(board.board)>/reports/all/1" <? } else { ?> class="selected" <? } ?> > all </a>
+        <a <? if(context.state != .open) { ?> href="/<(board.board)>/reports/open/1" <? } else { ?> class="selected" <? }  ?> > open </a>
+        <a <? if(context.state != .closed) { ?> href="/<(board.board)>/reports/closed/1" <? } else { ?> class="selected" <? }  ?> > closed </a>
+    </div> </center>
+    <? _ = try partial.pages.render(output, .{
+        .page = context.page,
+        .pages = context.pages,
+        .url = url
+    }); ?>
+    <form name="postcontrols" method="post" action="/<(board.board)>/reports/close">
+    <? for(reports) |report| { ?>
+    <div class="report">
+        <hr>
+        <input
+            type="checkbox"
+            class="delete"
+            name="report_<[report.report_id]>"
+            id="report_<[report.report_id]>"
+        >
+        Board: <a href="/<( report.board )>/"><( report.board )></a>
+        Post: <a href="/<(report.board)>/res/<[report.thread]>#<[report.post]>">&gt&gt<[report.post]></a>
+        Date: <? _ = try partial.date.render(output, .{.date = report.date}); ?>
+        Reported by: <? _ = try partial.id.render(output, .{
+            .board = board.board,
+            .address = report.address,
+            .salt = board.address_salt,
+        }); ?> <? if(flags.root) { ?>(<{report.address}>)<? } ?>
+        <br>
+        Reason: <( report.reason )>
+        <br>
+    </div>
+    <? } ?>
+    <hr>
+    <table>
+        <tr>
+            <th colspan=2>
+                Close Report
+            </th>
+        </tr>
+        <tr>
+            <th>
+                Message
+            </th>
+            <td>
+                <input id="message" type="text" name="message" size="30">
+            </td>
+        </tr>
+        <? _ = try partial.captcha_row.render(output, .{
+            .user_data_opt = context.user_data_opt,
+            .value = "Close",
+        }); ?>
+    </table>
+    </form>
+    <? _ = try partial.pages.render(output, .{
+        .page = context.page,
+        .pages = context.pages,
+        .url = url
+    }); ?>
+    <a href="/<(board.board)>/mod">Return</a>
+</body>

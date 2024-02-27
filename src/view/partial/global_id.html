@@ -1,0 +1,7 @@
+<?
+    const address = context.address;
+    const salt = context.salt;
+    const hash = try root.model.util.sha256Salt(address, salt);
+    const str = hash[0..8];
+?>
+<a href="/ban/<{&hash}>"><{str}></a>

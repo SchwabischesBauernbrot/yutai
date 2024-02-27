@@ -1,0 +1,45 @@
+<?
+    const config = context.config;
+    const logs = context.logs;
+    
+    const user_data_opt = context.user_data_opt;
+    const flags = root.model.user.flags(user_data_opt);
+?>
+
+<html>
+<head>
+    <? _ = try partial.header.render(output, .{}); ?>
+    <title>
+        Global Logs
+    </title>
+</head>
+<body>
+    <? _ = try partial.top.render(output, context); ?>
+    <header>
+        <h1>
+            Global Logs
+        </h1>
+    </header>
+    <? for(logs) |log| { ?>
+    <div class="report">
+        <hr>
+        <div style="width: 200; float: left; display: inline;">
+            <? _ = try partial.date.render(output, .{.date = log.date}); ?>
+            <? if(flags.global_mod) { ?>
+                <br>
+                Global ID: <? _ = try partial.global_id.render(output, .{
+                        .address = log.address,
+                        .salt = config.address_salt,
+                    });
+                ?>
+            <? } ?>
+            <? if(flags.root) { ?> <br>(<{log.address}>) <? } ?>
+        </div>
+        <div style="display: inline;">
+            <{log.message}>
+        </div>
+    </div>
+    <? } ?>
+    <hr>
+    <a href="/mod">Return</a>
+</body>

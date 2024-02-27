@@ -1,0 +1,9 @@
+<?
+    var datetime_buff: [128]u8 = undefined;
+    const datetime = util.datetime(&datetime_buff, context.date);
+    
+    var time_buff: [128]u8 = undefined;
+    const time = util.time(&time_buff, context.date);
+?>
+
+<time datetime="<{datetime}>"><{time}></time>

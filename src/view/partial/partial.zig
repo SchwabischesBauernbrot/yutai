@@ -1,0 +1,16 @@
+pub const footer = @import("partial_footer");
+pub const header = @import("partial_header");
+pub const misc_form = @import("partial_misc_form");
+pub const post_form = @import("partial_post_form");
+pub const post = @import("partial_post");
+pub const reply = @import("partial_reply");
+pub const thread = @import("partial_thread");
+pub const files = @import("partial_files");
+pub const image = @import("partial_image");
+pub const pages = @import("partial_pages");
+pub const board_pages = @import("partial_board_pages");
+pub const top = @import("partial_top");
+pub const date = @import("partial_date");
+pub const id = @import("partial_id");
+pub const global_id = @import("partial_global_id");
+pub const captcha_row = @import("partial_captcha_row");

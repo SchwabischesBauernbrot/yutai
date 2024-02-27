@@ -1,0 +1,8 @@
+<?
+    const post = context.post_rows[0];
+?>
+
+<div class="post reply" id="reply_<[post.post]>">
+    <? _ = try partial.post.render(output, context); ?>
+</div>
+<br>

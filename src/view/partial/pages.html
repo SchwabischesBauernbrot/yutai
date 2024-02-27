@@ -1,0 +1,21 @@
+<?
+    const url = context.url;
+    const page = context.page + 1;
+    const pages = context.pages;
+    const start = (page -| 10) + 1;
+    const end = @min(start + 20, pages);
+    var i = start;
+?>
+
+<div class="pages">
+    <a <? if(page > start) { ?> href="<(url)><[page-1]>" <? } ?> >Previous</a>
+    <? while(i < page) : (i += 1) { ?>
+        [<a class="" href="<(url)><[i]>"><[i]></a>]
+    <? } ?>
+    [<a class="selected"><[i]></a>]
+    <? i += 1; ?>
+    <? while(i <= end) : (i += 1) { ?>
+        [<a class="" href="<(url)><[i]>"><[i]></a>]
+    <? } ?>
+    <a <? if(page < end) { ?> href="<(url)><[page+1]>" <? } ?> >Next</a>
+</div>

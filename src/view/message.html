@@ -1,0 +1,19 @@
+<?
+    const title = context.title;
+    const message = context.message;
+?>
+
+<html>
+<head>
+    <? _ = try partial.header.render(output, .{}); ?>
+</head>
+<body>
+    <header>
+        <h1>
+            <{ title }>
+        </h1>
+    </header>
+    <center>
+        <{ message }>
+    </center>
+</body>
