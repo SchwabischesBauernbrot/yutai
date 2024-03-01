@@ -16,6 +16,15 @@ const helpers = @import("helpers.zig");
 
 const logger = std.log.scoped(.vtab);
 
+fn hasDecls(comptime T: type, comptime names: anytype) bool {
+    inline for (names) |name| {
+        if (!@hasDecl(T, name)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /// ModuleContext contains state that is needed by all implementations of virtual tables.
 ///
 /// Currently there's only an allocator.
@@ -26,7 +35,7 @@ pub const ModuleContext = struct {
 fn dupeToSQLiteString(s: []const u8) [*c]const u8 {
     var buffer: [*c]u8 = @ptrCast(c.sqlite3_malloc(@intCast(s.len + 1)));
 
-    mem.copy(u8, buffer[0..s.len], s);
+    mem.copyForwards(u8, buffer[0..s.len], s);
     buffer[s.len] = 0;
 
     return buffer;
@@ -198,7 +207,7 @@ pub const BestIndexBuilder = struct {
     const InitError = error{} || mem.Allocator.Error || ConstraintOpFromCodeError;
 
     fn init(allocator: mem.Allocator, index_info: *c.sqlite3_index_info) InitError!Self {
-        var res = Self{
+        const res = Self{
             .allocator = allocator,
             .index_info = index_info,
             .id_str_buffer = std.ArrayList(u8).init(allocator),
@@ -232,7 +241,7 @@ pub const BestIndexBuilder = struct {
         var index_info = self.index_info;
 
         // Populate the constraint usage
-        var constraint_usage: []c.sqlite3_index_constraint_usage = index_info.aConstraintUsage[0..self.constraints.len];
+        var constraint_usage = index_info.aConstraintUsage[0..self.constraints.len];
         for (self.constraints, 0..) |constraint, i| {
             constraint_usage[i].argvIndex = constraint.usage.argv_index;
             constraint_usage[i].omit = if (constraint.usage.omit) 1 else 0;
@@ -244,7 +253,7 @@ pub const BestIndexBuilder = struct {
             // Must always be NULL-terminated so add 1
             const tmp: [*c]u8 = @ptrCast(c.sqlite3_malloc(@intCast(self.id.str.len + 1)));
 
-            mem.copy(u8, tmp[0..self.id.str.len], self.id.str);
+            mem.copyForwards(u8, tmp[0..self.id.str.len], self.id.str);
             tmp[self.id.str.len] = 0;
 
             index_info.idxStr = tmp;
@@ -301,7 +310,7 @@ fn validateCursorType(comptime Table: type) void {
 
     // Validate the `init` function
     {
-        if (!meta.trait.hasDecls(Cursor, .{"InitError"})) {
+        if (!comptime hasDecls(Cursor, .{"InitError"})) {
             @compileError("the Cursor type must declare a InitError error set for the init function");
         }
 
@@ -309,7 +318,7 @@ fn validateCursorType(comptime Table: type) void {
             \\the Cursor.init function must have the signature `fn init(allocator: std.mem.Allocator, parent: *Table) InitError!*Cursor`
         ;
 
-        if (!meta.trait.hasFn("init")(Cursor)) {
+        if (!comptime helpers.hasFn(Cursor, "init")) {
             @compileError("the Cursor type must have an init function, " ++ error_message);
         }
 
@@ -327,7 +336,7 @@ fn validateCursorType(comptime Table: type) void {
             \\the Cursor.deinit function must have the signature `fn deinit(cursor: *Cursor) void`
         ;
 
-        if (!meta.trait.hasFn("deinit")(Cursor)) {
+        if (!comptime helpers.hasFn(Cursor, "deinit")) {
             @compileError("the Cursor type must have a deinit function, " ++ error_message);
         }
 
@@ -340,7 +349,7 @@ fn validateCursorType(comptime Table: type) void {
 
     // Validate the `next` function
     {
-        if (!meta.trait.hasDecls(Cursor, .{"NextError"})) {
+        if (!comptime hasDecls(Cursor, .{"NextError"})) {
             @compileError("the Cursor type must declare a NextError error set for the next function");
         }
 
@@ -348,7 +357,7 @@ fn validateCursorType(comptime Table: type) void {
             \\the Cursor.next function must have the signature `fn next(cursor: *Cursor, diags: *sqlite.vtab.VTabDiagnostics) NextError!void`
         ;
 
-        if (!meta.trait.hasFn("next")(Cursor)) {
+        if (!comptime helpers.hasFn(Cursor, "next")) {
             @compileError("the Cursor type must have a next function, " ++ error_message);
         }
 
@@ -362,7 +371,7 @@ fn validateCursorType(comptime Table: type) void {
 
     // Validate the `hasNext` function
     {
-        if (!meta.trait.hasDecls(Cursor, .{"HasNextError"})) {
+        if (!comptime hasDecls(Cursor, .{"HasNextError"})) {
             @compileError("the Cursor type must declare a HasNextError error set for the hasNext function");
         }
 
@@ -370,7 +379,7 @@ fn validateCursorType(comptime Table: type) void {
             \\the Cursor.hasNext function must have the signature `fn hasNext(cursor: *Cursor, diags: *sqlite.vtab.VTabDiagnostics) HasNextError!bool`
         ;
 
-        if (!meta.trait.hasFn("hasNext")(Cursor)) {
+        if (!comptime helpers.hasFn(Cursor, "hasNext")) {
             @compileError("the Cursor type must have a hasNext function, " ++ error_message);
         }
 
@@ -384,7 +393,7 @@ fn validateCursorType(comptime Table: type) void {
 
     // Validate the `filter` function
     {
-        if (!meta.trait.hasDecls(Cursor, .{"FilterError"})) {
+        if (!comptime hasDecls(Cursor, .{"FilterError"})) {
             @compileError("the Cursor type must declare a FilterError error set for the filter function");
         }
 
@@ -392,7 +401,7 @@ fn validateCursorType(comptime Table: type) void {
             \\the Cursor.filter function must have the signature `fn filter(cursor: *Cursor, diags: *sqlite.vtab.VTabDiagnostics, index: sqlite.vtab.IndexIdentifier, args: []FilterArg) FilterError!bool`
         ;
 
-        if (!meta.trait.hasFn("filter")(Cursor)) {
+        if (!comptime helpers.hasFn(Cursor, "filter")) {
             @compileError("the Cursor type must have a filter function, " ++ error_message);
         }
 
@@ -408,10 +417,10 @@ fn validateCursorType(comptime Table: type) void {
 
     // Validate the `column` function
     {
-        if (!meta.trait.hasDecls(Cursor, .{"ColumnError"})) {
+        if (!comptime hasDecls(Cursor, .{"ColumnError"})) {
             @compileError("the Cursor type must declare a ColumnError error set for the column function");
         }
-        if (!meta.trait.hasDecls(Cursor, .{"Column"})) {
+        if (!comptime hasDecls(Cursor, .{"Column"})) {
             @compileError("the Cursor type must declare a Column type for the return type of the column function");
         }
 
@@ -419,7 +428,7 @@ fn validateCursorType(comptime Table: type) void {
             \\the Cursor.column function must have the signature `fn column(cursor: *Cursor, diags: *sqlite.vtab.VTabDiagnostics, column_number: i32) ColumnError!Column`
         ;
 
-        if (!meta.trait.hasFn("column")(Cursor)) {
+        if (!comptime helpers.hasFn(Cursor, "column")) {
             @compileError("the Cursor type must have a column function, " ++ error_message);
         }
 
@@ -434,7 +443,7 @@ fn validateCursorType(comptime Table: type) void {
 
     // Validate the `rowId` function
     {
-        if (!meta.trait.hasDecls(Cursor, .{"RowIDError"})) {
+        if (!comptime hasDecls(Cursor, .{"RowIDError"})) {
             @compileError("the Cursor type must declare a RowIDError error set for the rowId function");
         }
 
@@ -442,7 +451,7 @@ fn validateCursorType(comptime Table: type) void {
             \\the Cursor.rowId function must have the signature `fn rowId(cursor: *Cursor, diags: *sqlite.vtab.VTabDiagnostics) RowIDError!i64`
         ;
 
-        if (!meta.trait.hasFn("rowId")(Cursor)) {
+        if (!comptime helpers.hasFn(Cursor, "rowId")) {
             @compileError("the Cursor type must have a rowId function, " ++ error_message);
         }
 
@@ -459,7 +468,7 @@ fn validateCursorType(comptime Table: type) void {
 fn validateTableType(comptime Table: type) void {
     // Validate the `init` function
     {
-        if (!meta.trait.hasDecls(Table, .{"InitError"})) {
+        if (!comptime hasDecls(Table, .{"InitError"})) {
             @compileError("the Table type must declare a InitError error set for the init function");
         }
 
@@ -467,7 +476,7 @@ fn validateTableType(comptime Table: type) void {
             \\the Table.init function must have the signature `fn init(allocator: std.mem.Allocator, diags: *sqlite.vtab.VTabDiagnostics, args: []const ModuleArgument) InitError!*Table`
         ;
 
-        if (!meta.trait.hasFn("init")(Table)) {
+        if (!comptime helpers.hasFn(Table, "init")) {
             @compileError("the Table type must have a init function, " ++ error_message);
         }
 
@@ -487,7 +496,7 @@ fn validateTableType(comptime Table: type) void {
             \\the Table.deinit function must have the signature `fn deinit(table: *Table, allocator: std.mem.Allocator) void`
         ;
 
-        if (!meta.trait.hasFn("deinit")(Table)) {
+        if (!comptime helpers.hasFn(Table, "deinit")) {
             @compileError("the Table type must have a deinit function, " ++ error_message);
         }
 
@@ -501,7 +510,7 @@ fn validateTableType(comptime Table: type) void {
 
     // Validate the `buildBestIndex` function
     {
-        if (!meta.trait.hasDecls(Table, .{"BuildBestIndexError"})) {
+        if (!comptime hasDecls(Table, .{"BuildBestIndexError"})) {
             @compileError("the Cursor type must declare a BuildBestIndexError error set for the buildBestIndex function");
         }
 
@@ -509,7 +518,7 @@ fn validateTableType(comptime Table: type) void {
             \\the Table.buildBestIndex function must have the signature `fn buildBestIndex(table: *Table, diags: *sqlite.vtab.VTabDiagnostics, builder: *sqlite.vtab.BestIndexBuilder) BuildBestIndexError!void`
         ;
 
-        if (!meta.trait.hasFn("buildBestIndex")(Table)) {
+        if (!comptime helpers.hasFn(Table, "buildBestIndex")) {
             @compileError("the Table type must have a buildBestIndex function, " ++ error_message);
         }
 
@@ -522,7 +531,7 @@ fn validateTableType(comptime Table: type) void {
         if (info.return_type.? != Table.BuildBestIndexError!void) @compileError(error_message);
     }
 
-    if (!meta.trait.hasDecls(Table, .{"Cursor"})) {
+    if (!comptime hasDecls(Table, .{"Cursor"})) {
         @compileError("the Table type must declare a Cursor type");
     }
 }
@@ -538,7 +547,7 @@ pub const ModuleArgument = union(enum) {
 const ParseModuleArgumentsError = error{} || mem.Allocator.Error;
 
 fn parseModuleArguments(allocator: mem.Allocator, argc: c_int, argv: [*c]const [*c]const u8) ParseModuleArgumentsError![]ModuleArgument {
-    var res = try allocator.alloc(ModuleArgument, @intCast(argc));
+    const res = try allocator.alloc(ModuleArgument, @intCast(argc));
     errdefer allocator.free(res);
 
     for (res, 0..) |*marg, i| {
@@ -585,7 +594,7 @@ pub fn VirtualTable(
         const InitError = error{} || mem.Allocator.Error || Table.InitError;
 
         fn init(module_context: *ModuleContext, table: *Table) InitError!*Self {
-            var res = try module_context.allocator.create(Self);
+            const res = try module_context.allocator.create(Self);
             res.* = .{
                 .vtab = mem.zeroes(c.sqlite3_vtab),
                 .module_context = module_context,
@@ -615,7 +624,7 @@ pub fn VirtualTable(
         const InitError = error{} || mem.Allocator.Error || Table.Cursor.InitError;
 
         fn init(module_context: *ModuleContext, table: *Table) InitError!*Self {
-            var res = try module_context.allocator.create(Self);
+            const res = try module_context.allocator.create(Self);
             errdefer module_context.allocator.destroy(res);
 
             res.* = .{
@@ -839,7 +848,7 @@ pub fn VirtualTable(
         fn filterArgsFromCPointer(allocator: mem.Allocator, argc: c_int, argv: [*c]?*c.sqlite3_value) FilterArgsFromCPointerError![]FilterArg {
             const size: usize = @intCast(argc);
 
-            var res = try allocator.alloc(FilterArg, size);
+            const res = try allocator.alloc(FilterArg, size);
             for (res, 0..) |*item, i| {
                 item.* = .{
                     .value = argv[i],
@@ -860,7 +869,7 @@ pub fn VirtualTable(
 
             const id = IndexIdentifier.fromC(idx_num, idx_str);
 
-            var args = filterArgsFromCPointer(arena.allocator(), argc, argv) catch |err| {
+            const args = filterArgsFromCPointer(arena.allocator(), argc, argv) catch |err| {
                 logger.err("unable to create filter args, err: {!}", .{err});
                 return c.SQLITE_ERROR;
             };
@@ -1008,7 +1017,7 @@ const TestVirtualTable = struct {
 
             var rand = std.rand.DefaultPrng.init(204882485);
 
-            var tmp = try allocator.alloc(Row, n);
+            const tmp = try allocator.alloc(Row, n);
             for (tmp) |*s| {
                 const foo_value = data[rand.random().intRangeLessThan(usize, 0, data.len)];
                 const bar_value = data[rand.random().intRangeLessThan(usize, 0, data.len)];
@@ -1122,7 +1131,7 @@ const TestVirtualTableCursor = struct {
     pub const InitError = error{} || mem.Allocator.Error;
 
     pub fn init(allocator: mem.Allocator, parent: *TestVirtualTable) InitError!*TestVirtualTableCursor {
-        var res = try allocator.create(TestVirtualTableCursor);
+        const res = try allocator.create(TestVirtualTableCursor);
         res.* = .{
             .allocator = allocator,
             .parent = parent,
@@ -1275,7 +1284,7 @@ test "parse module arguments" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var args = try allocator.alloc([*c]const u8, 20);
+    const args = try allocator.alloc([*c]const u8, 20);
     for (args, 0..) |*arg, i| {
         const tmp = try fmt.allocPrintZ(allocator, "arg={d}", .{i});
         arg.* = @ptrCast(tmp);

@@ -1,11 +1,8 @@
 const root = @import("root");
 
-pub const c = if (@hasDecl(root, "loadable_extension"))
-    @import("c/loadable_extension.zig")
-else
-    @cImport({
-        @cInclude("sqlite3.h");
-    });
+pub const c = @cImport({
+    @cInclude("sqlite3.h");
+});
 
 // versionGreaterThanOrEqualTo returns true if the SQLite version is >= to the major.minor.patch provided.
 pub fn versionGreaterThanOrEqualTo(major: u8, minor: u8, patch: u8) bool {

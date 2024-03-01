@@ -83,7 +83,20 @@ Add this as one of the `.dependencies` inside your `build.zig.zon` file:
 ```zig
 .sqlite = .{
     .url = "https://github.com/vrischmann/zig-sqlite/archive/COMMIT.tar.gz",
+    .hash = <hash value>,
 },
+```
+
+This tells zig to fetch zig-sqlite from a tarball provided by GitHub. Make sure to replace the `COMMIT` part with an actual commit SHA in long form, like `219faa2a5cd5a268a865a1100e92805df4b84610`.
+Every time you want to update zig-sqlite you'll have to update this commit.
+
+You'll have to provide the `hash` field too which is actually a litte annoying because the hash is of the _content_, not the _archive_ (see [the Zig 0.11 release notes](https://ziglang.org/download/0.11.0/release-notes.html#Package-Management)).
+The easiest way to get the hash value is to omit it from the file and run `zig build`, it will report an error like this:
+```
+Fetch Packages... sqlite... /Users/vincent/dev/perso/projects/zig-sqlite-demo/build.zig.zon:6:11: error: url field is missing corresponding hash field
+   .url = "https://github.com/vrischmann/zig-sqlite/archive/219faa2a5cd5a268a865a1100e92805df4b84610.tar.gz",
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+note: expected .hash = "122088f0b73f5adcf07c9af8437c5149ed35c3f16f6393c330a294bdd5f91f069a08",
 ```
 
 Now in your `build.zig` you can access the module like this:
@@ -133,7 +146,9 @@ If you want to use the system sqlite library, add the following to your `build.z
 ```zig
 exe.linkLibC();
 exe.linkSystemLibrary("sqlite3");
-exe.addPackage(.{ .name = "sqlite", .path = "third_party/zig-sqlite/sqlite.zig" });
+exe.addAnonymousModule("sqlite", .{
+    .source_file = .{ .path = "third_party/zig-sqlite/sqlite.zig" },
+});
 ```
 
 ## Using the bundled sqlite source code file
@@ -141,8 +156,18 @@ exe.addPackage(.{ .name = "sqlite", .path = "third_party/zig-sqlite/sqlite.zig" 
 If you want to use the bundled sqlite source code file, first you need to add it as a static library in your `build.zig` file:
 
 ```zig
-const sqlite = b.addStaticLibrary("sqlite", null);
-sqlite.addCSourceFile("third_party/zig-sqlite/c/sqlite3.c", &[_][]const u8{"-std=c99"});
+const sqlite = b.addStaticLibrary(.{
+    .name = "sqlite",
+    .target = target,
+    .optimize = optimize,
+});
+sqlite.addCSourceFile(.{
+    .file = .{ .path = "third_party/zig-sqlite/c/sqlite3.c" },
+    .flags = &[_][]const u8{
+        "-std=c99",
+    },
+});
+sqlite.addIncludePath(.{ .path = "third_party/zig-sqlite/c" });
 sqlite.linkLibC();
 ```
 
@@ -152,8 +177,10 @@ Now it's just a matter of linking your `build.zig` target(s) to this library ins
 
 ```zig
 exe.linkLibrary(sqlite);
-exe.addPackagePath("sqlite", "third_party/zig-sqlite/sqlite.zig");
-exe.addIncludeDir("third_party/zig-sqlite/c");
+exe.addIncludePath(.{ .path = "third_party/zig-sqlite/c" });
+exe.addAnonymousModule("sqlite", .{
+    .source_file = .{ .path = "third_party/zig-sqlite/sqlite.zig" },
+});
 ```
 
 If you're building with glibc you must make sure that the version used is at least 2.28.
@@ -239,7 +266,7 @@ const query =
 var stmt = try db.prepare(query);
 defer stmt.deinit();
 
-try stmt.exec(.{
+try stmt.exec(.{}, .{
     .salary = 20000,
     .id = 40,
 });
@@ -261,7 +288,7 @@ defer stmt.deinit();
 var id: usize = 0;
 while (id < 20) : (id += 1) {
     stmt.reset();
-    try stmt.exec(.{
+    try stmt.exec(.{}, .{
         .salary = 2000,
         .id = id,
     });
