@@ -6,7 +6,7 @@ It should be fast and straight forward to use, but bear in mind that it is writt
 Dependencies
 ------------
 - Zig = 0.11.0
-- SQLite >= 3.40.0
+- SQLite >= 3.21.0
 - ImageMagick >= 7.1.1
 
 Cloning the repository
