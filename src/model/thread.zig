@@ -18,7 +18,7 @@ pub fn add(
     board: data.Board,
     addr: std.net.Address,
     subject: ?[]const u8,
-    message: ?[]const u8,
+    message: []const u8,
     email_opt: ?[]const u8,
     name_opt: ?[]const u8,
     files: [][2][]const u8,
@@ -28,7 +28,7 @@ pub fn add(
     const post = board.post_count;
 
     try util.beginTransaction(context);
-    defer util.endTransaction(context) catch {};
+    errdefer util.rollbackTransaction(context) catch {};
 
     try model.post.add(
         context,
@@ -49,6 +49,9 @@ pub fn add(
         board.board,
         context.config.threadLimit(),
     });
+
+    util.endTransaction(context) catch {};
+    try model.post_image.clear(context);
 }
 
 pub fn pages(

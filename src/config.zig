@@ -22,7 +22,9 @@ pub const Captcha = struct {
 
 http: ?Http,
 https: ?Https,
+
 max_request_length: usize,
+max_message_length: usize,
 
 icon: ?[]const u8,
 favicon: ?[]const u8,
@@ -37,12 +39,18 @@ no_file_thumbnail: []const u8,
 default_file_thumbnail: []const u8,
 deleted_file_thumbnail: []const u8,
 
+log_post_ip: bool,
+log_user_ip: bool,
+
 page_length: u16,
 bump_limit: usize,
 reply_count: usize,
 board_pages: usize,
 max_latest_posts: usize,
 max_latest_images: usize,
+
+max_user_invites: usize,
+invite_duration: u32,
 
 thumbnail_size: usize,
 default_name: []const u8,
@@ -51,6 +59,9 @@ address_salt: []const u8,
 root_user: []const u8,
 
 captcha: Captcha,
+
+themes: std.json.ArrayHashMap([]const u8),
+default_theme: []const u8,
 
 pub fn init(alloc: std.mem.Allocator, path: []const u8) !@This() {
     @setEvalBranchQuota(10000);

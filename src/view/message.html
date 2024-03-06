@@ -5,7 +5,7 @@
 
 <html>
 <head>
-    <? _ = try partial.header.render(output, .{}); ?>
+    <? _ = try partial.header.render(output, context); ?>
 </head>
 <body>
     <header>
@@ -17,3 +17,4 @@
         <{ message }>
     </center>
 </body>
+</html>

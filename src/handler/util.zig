@@ -10,6 +10,7 @@ const handler = root.handler;
 const view = root.view;
 
 const Context = root.Context;
+const Address = root.Address;
 
 const RequestError = handler.RequestError;
 const Error = handler.Error;
@@ -47,6 +48,11 @@ pub fn getField(form: http.Request.Form, field: []const u8) ![]const u8 {
     return form.fields.get(field) orelse RequestError.MissingFields;
 }
 
+pub fn nullIfEmpty(form: http.Request.Form, field: []const u8) !?[]const u8 {
+    const str = try getField(form, field);
+    return if (str.len == 0) null else str;
+}
+
 pub fn getPage(page: i32) !u32 {
     const temp: i32 = page - 1;
     return if (temp < 0) RequestError.NotFound else @as(u32, @bitCast(temp));
@@ -63,8 +69,8 @@ pub fn checkPage(page: u32, pages: usize) !void {
 }
 
 pub fn getUser(context: Context, request: http.Request) !data.User {
-    var headers = try getHeaders(context.alloc, request);
-    defer freeHeaders(context.alloc, &headers);
+    var headers = try request.headers(context.alloc);
+    defer headers.deinit(context.alloc);
 
     const cookie = headers.get("Cookie") orelse
         return Error.InvalidCredentials;
@@ -79,31 +85,6 @@ pub fn getUserOpt(context: Context, request: http.Request) !?data.User {
         model.Error.InvalidCredentials => null,
         else => err,
     };
-}
-
-pub fn getHeaders(
-    alloc: std.mem.Allocator,
-    request: http.Request,
-) !http.Request.Headers {
-    return try request.headers(alloc);
-}
-
-pub fn freeHeaders(
-    alloc: std.mem.Allocator,
-    headers: *http.Request.Headers,
-) void {
-    var itr = headers.iterator();
-    while (itr.next()) |pair| {
-        alloc.free(pair.key_ptr.*);
-        alloc.free(pair.value_ptr.*);
-    }
-    headers.deinit(alloc);
-}
-
-pub fn nullIfEmpty(arg: ?[]const u8) ?[]const u8 {
-    return if (arg) |str| blk: {
-        break :blk if (str.len == 0) null else str;
-    } else null;
 }
 
 pub fn defaultIfEmpty(arg: ?[]const u8, default: []const u8) []const u8 {
@@ -215,30 +196,6 @@ pub const Token = struct {
     session: []const u8,
 };
 
-pub fn message(response: *http.Response, title: []const u8) !void {
-    try messageEx(response, title, "");
-}
-
-pub fn messageEx(
-    response: *http.Response,
-    title: []const u8,
-    msg: []const u8,
-) !void {
-    try render(response, view.message, .{ .title = title, .message = msg });
-}
-
-pub fn errorView(response: *http.Response, title: []const u8) !void {
-    try errorViewEx(response, title, "");
-}
-
-pub fn errorViewEx(
-    response: *http.Response,
-    title: []const u8,
-    msg: []const u8,
-) !void {
-    try render(response, view.fail, .{ .title = title, .message = msg });
-}
-
 pub fn parseLength(str: []const u8) !i64 {
     @setEvalBranchQuota(10000);
 
@@ -273,15 +230,8 @@ pub fn parseLength(str: []const u8) !i64 {
     } else error.InvalidForm;
 }
 
-pub fn parseRange(range_str: []const u8) !?root.Address.RangeSize {
-    return if (std.mem.eql(u8, range_str, "single"))
-        null
-    else if (std.mem.eql(u8, range_str, "small"))
-        .small
-    else if (std.mem.eql(u8, range_str, "large"))
-        .large
-    else
-        RequestError.InvalidForm;
+pub fn parseBanType(str: []const u8) ?Address.RangeSize {
+    return std.meta.stringToEnum(Address.RangeSize, str);
 }
 
 pub fn getFiles(
@@ -291,11 +241,38 @@ pub fn getFiles(
     var list = std.ArrayList([2][]const u8).init(alloc);
     defer list.deinit();
 
-    if (nullIfEmpty(form.fields.get("file"))) |filename| {
-        if (nullIfEmpty(form.files.get(filename))) |file| {
+    if (try nullIfEmpty(form, "file")) |filename| {
+        if (form.files.get(filename)) |file| {
             try list.append(.{ filename, file });
         }
     }
 
     return list.toOwnedSlice();
+}
+
+pub fn getMessage(
+    config: root.Config,
+    form: http.Request.Form,
+    field: []const u8,
+) ![]const u8 {
+    const msg: []const u8 = form.fields.get(field) orelse "";
+    return if (msg.len > config.max_message_length)
+        error.InvalidForm
+    else
+        msg;
+}
+
+pub fn message(
+    context: Context,
+    response: *http.Response,
+    title: []const u8,
+    user_opt: ?data.User,
+) !void {
+    const user_data_opt = try model.user.info(context, user_opt, null);
+    try render(response, view.message, .{
+        .title = title,
+        .message = "",
+        .user_data_opt = user_data_opt,
+        .config = context.config,
+    });
 }

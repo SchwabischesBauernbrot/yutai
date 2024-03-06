@@ -1,0 +1,35 @@
+<html>
+<head>
+    <? _ = try partial.header.render(output, context); ?>
+    <title> FAQ </title>
+</head>
+<body>
+    <header>
+        <h1> FAQ </h1>
+    </header>
+    <div class="ban">
+        <h2>
+            Index
+        </h2>
+        <ul>
+            <li><a href="#faq1">How do I format my text?</a></li>
+            <li><a href="#faq2">I found a post that violates a rule. What should I do?</a></li>
+        </ul>
+        <h2 id="faq1">
+            How do I format my text?
+        </h2>
+        <ul>
+            <li>&gt;text -&gt; <span class="quote">&gt;text</span></li>
+            <li>[spoiler]text[/spoiler] -&gt; <span class="spoiler">text</span></li>
+            <li>[i]text[/i] -&gt; <em>text</em></li>
+            <li>[b]text[/b] -&gt; <strong>text</strong></li>
+        </ul>
+        <h2 id="faq2">
+            I found a post that violates a rule. What should I do?
+        </h2>
+        <p>
+            You should submit a report and ignore the post in question.
+        </p>
+    </div>
+</body>
+</html>

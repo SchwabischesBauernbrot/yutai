@@ -1,0 +1,67 @@
+<?
+    const user = context.user;
+    const config = context.config;
+    const themes = config.themes.map;
+?>
+
+<html>
+<head>
+    <? _ = try partial.header.render(output, context); ?>
+    <title>
+        User Dashboard - <(user.name)>
+    </title>
+    <style>
+        form {
+            margin-bottom: unset;
+        }
+    </style>
+</head>
+<body>
+    <? _ = try partial.top.render(output, context); ?>
+    <header>
+        <h1>
+            User Dashboard - <(user.name)>
+        </h1>
+    </header>
+    <hr>
+    <form name="new_pass" method="post" action="/user/update/pass">
+        <table>
+            <tr>
+                <th>
+                    New Password
+                </th>
+                <td>
+                    <input type="password" name="new_pass" size="25" maxlength="40">
+                    <input type="submit" value="Update">
+                </td>
+            </tr>
+        </table>
+    </form>
+    <hr>
+    <form name="new_theme" method="post" action="/user/update/theme">
+        <table>
+            <tr>
+                <th>
+                    Theme
+                </th>
+                <td>
+                    <select name="new_theme">
+                        <? for(themes.keys()) |theme| { ?>
+                            <option
+                                value="<{theme}>"
+                                <? if(std.mem.eql(u8, theme, user.theme)) { ?>
+                                    selected="selected"
+                                <? } ?>
+                            ><{theme}></option>
+                        <? } ?>
+                    </select>
+                    <input type="submit" value="Update">
+                </td>
+            </tr>
+        </table>
+    </form>
+    <hr>
+    <a href="/">Return</a>
+    <? _ = try partial.footer.render(output, context); ?>
+</body>
+</html>

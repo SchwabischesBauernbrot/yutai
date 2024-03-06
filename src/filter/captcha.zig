@@ -26,7 +26,7 @@ pub fn post(
     var form = try request.form(context.alloc);
     defer form.deinit(context.alloc);
 
-    const opt = handler.util.nullIfEmpty(form.fields.get("captcha"));
+    const opt = try handler.util.nullIfEmpty(form, "captcha");
 
     if (!try model.captcha.match(context, request.address, opt)) {
         return Error.WrongCaptcha;

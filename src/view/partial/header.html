@@ -1,8 +1,28 @@
-<? _ = context; ?>
+<?
+    const model = root.model;
+    const config = context.config;
+    const Context = @TypeOf(context);
+    
+    const themes = config.themes.map;
+    
+    var user_data_opt: ?model.user.Data = null;
+    if(@hasField(Context, "user_data_opt")) {
+        user_data_opt = context.user_data_opt;
+    }
+    
+    const theme = if(user_data_opt) |user_data|
+        user_data.theme
+    else
+        config.default_theme;
+    
+    const theme_path_opt = themes.get(theme)
+        orelse themes.get(config.default_theme);
+?>
 
 <meta charset="utf-8">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes">
-<link rel="stylesheet" media="screen" href="/static/style.css">
-<!--<link rel="stylesheet" media="screen" href="/static/futaba.css" >-->
-<!--<link rel="icon" type="image/x-icon" href="/static/favicon.ico">-->
+<link rel="stylesheet" media="screen" href="/static/stylesheets/style.css">
+<? if(theme_path_opt) |theme_path| { ?>
+    <link rel="stylesheet" media="screen" href="/<{theme_path}>">
+<? } ?>

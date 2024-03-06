@@ -15,6 +15,9 @@ pub fn delete(
     request: http.Request,
     board: []const u8,
 ) !void {
+    const user_opt = try util.getUserOpt(context, request);
+    defer root.util.free(context.alloc, user_opt);
+
     var form = try request.form(context.alloc);
     defer form.deinit(context.alloc);
 
@@ -23,7 +26,7 @@ pub fn delete(
 
     try model.post.deleteList(context, board, posts, request.address);
 
-    try util.message(response, "Post(s) Deleted!");
+    try util.message(context, response, "Post(s) Deleted!", user_opt);
 }
 
 pub fn modDelete(
@@ -32,11 +35,11 @@ pub fn modDelete(
     request: http.Request,
     board: []const u8,
 ) !void {
-    var form = try request.form(context.alloc);
-    defer form.deinit(context.alloc);
-
     const user = try util.getUser(context, request);
     defer root.util.free(context.alloc, user);
+
+    var form = try request.form(context.alloc);
+    defer form.deinit(context.alloc);
 
     const reason = form.fields.get("reason_delete") orelse "";
 
@@ -45,7 +48,7 @@ pub fn modDelete(
 
     try model.post.modDeleteList(context, board, posts, user, reason);
 
-    try util.message(response, "Post(s) Deleted!");
+    try util.message(context, response, "Post(s) Deleted!", user);
 }
 
 pub fn globalModDelete(
@@ -54,11 +57,11 @@ pub fn globalModDelete(
     request: http.Request,
     board: []const u8,
 ) !void {
-    var form = try request.form(context.alloc);
-    defer form.deinit(context.alloc);
-
     const user = try util.getUser(context, request);
     defer root.util.free(context.alloc, user);
+
+    var form = try request.form(context.alloc);
+    defer form.deinit(context.alloc);
 
     const reason = form.fields.get("reason_delete") orelse "";
     const permanent = form.fields.get("permanent") != null;
@@ -72,5 +75,5 @@ pub fn globalModDelete(
         try model.post.modDeleteList(context, board, posts, user, reason);
     }
 
-    try util.message(response, "Post(s) Deleted!");
+    try util.message(context, response, "Post(s) Deleted!", user);
 }

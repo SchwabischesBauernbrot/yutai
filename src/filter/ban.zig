@@ -35,8 +35,13 @@ fn any(
     response: *http.Response,
     opt: ?[]const u8,
 ) !void {
+    const user_opt = try util.getUserOpt(context, request);
+    defer root.util.free(context.alloc, user_opt);
+
     const bans = try model.ban.get(context, opt, request.address);
     defer root.util.free(context.alloc, bans);
+
+    const user_data_opt = try model.user.info(context, user_opt, opt);
 
     if (bans[0].len + bans[1].len == 0) return;
 
@@ -46,8 +51,13 @@ fn any(
     response.status_code = .forbidden;
     try util.render(
         response,
-        view.banned,
-        .{ .bans = ip_bans, .range_bans = range_bans },
+        view.user.banned,
+        .{
+            .bans = ip_bans,
+            .range_bans = range_bans,
+            .user_data_opt = user_data_opt,
+            .config = context.config,
+        },
     );
 
     return Error.BannedAddress;

@@ -12,8 +12,7 @@ const Context = root.Context;
 
 const Error = filter.Error;
 
-const bufAddressStr = model.util.bufAddressStr;
-const ban = model.ban.addAddress;
+const ban = model.ban.addNetAddress;
 
 pub fn post(
     context: Context,
@@ -23,20 +22,21 @@ pub fn post(
     var form = try request.form(context.alloc);
     defer form.deinit(context.alloc);
 
-    if (util.nullIfEmpty(form.fields.get("file"))) |filename| {
-        if (util.nullIfEmpty(form.files.get(filename))) |body| {
-            try check(context, request, body);
-        }
+    const files = try util.getFiles(context.alloc, form);
+    defer context.alloc.free(files);
+
+    for (files) |file| {
+        const body = file[1];
+        try check(context, request.address, body);
     }
 }
 
-fn check(context: Context, request: http.Request, body: []const u8) !void {
+fn check(context: Context, address: std.net.Address, body: []const u8) !void {
     if (try getImage(context, body)) |image| {
+        defer root.util.free(context.alloc, image);
         if (image.file_state == .banned) {
-            var addr_buf: [64]u8 = undefined;
-            const addr = try bufAddressStr(&addr_buf, request.address);
             const name = image.file_moderator;
-            try ban(context, null, addr, 0, "banned image", name);
+            try ban(context, address, "banned image", name);
             return Error.BannedImage;
         }
     }

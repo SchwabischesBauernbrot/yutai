@@ -182,14 +182,12 @@ pub fn iterator(self: Request) Iterator {
 }
 
 /// Creates an unmanaged Hashmap from the request headers, memory is owned by caller
-/// Every header key and value will be allocated for the map and must therefore be freed
-/// manually as well.
 pub fn headers(self: Request, gpa: Allocator) !Headers {
     var map = Headers{};
 
     var it = self.iterator();
     while (it.next()) |header| {
-        try map.put(gpa, try gpa.dupe(u8, header.key), try gpa.dupe(u8, header.value));
+        try map.put(gpa, header.key, header.value);
     }
 
     return map;
@@ -345,7 +343,12 @@ const FormIterator = struct {
         const value_end = data.len - 2;
 
         field.key = try gpa.dupe(u8, data[key_start..key_end]);
-        field.value = try gpa.dupe(u8, data[value_start..value_end]);
+
+        const value_str = data[value_start..value_end];
+        field.value = if (field.filename == null)
+            try copyFormValue(gpa, value_str)
+        else
+            try gpa.dupe(u8, value_str);
 
         return field;
     }
@@ -397,6 +400,10 @@ const FormIterator = struct {
         }
     }
 };
+
+fn copyFormValue(alloc: std.mem.Allocator, raw: []const u8) ![]const u8 {
+    return try std.mem.replaceOwned(u8, alloc, raw, "\r\n", "\n");
+}
 
 /// Errors which can occur during the parsing of
 /// a HTTP request.

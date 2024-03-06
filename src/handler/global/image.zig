@@ -19,7 +19,7 @@ pub fn erase(
     defer root.util.free(context.alloc, user);
 
     try model.post_image.permanentRemove(context, hash, user);
-    try util.message(response, "Image Erased!");
+    try util.message(context, response, "Image Erased!", user);
 }
 
 pub fn ban(
@@ -32,5 +32,5 @@ pub fn ban(
     defer root.util.free(context.alloc, user);
 
     try model.post_image.ban(context, hash, user);
-    try util.message(response, "Image Banned!");
+    try util.message(context, response, "Image Banned!", user);
 }

@@ -13,15 +13,16 @@ pub fn get(
     context: Context,
     response: *http.Response,
     request: http.Request,
-    address: []const u8,
+    hash: []const u8,
 ) !void {
-    const user_opt = try util.getUserOpt(context, request);
-    defer root.util.free(context.alloc, user_opt);
+    const user = try util.getUser(context, request);
+    defer root.util.free(context.alloc, user);
 
-    const user_data = try model.user.info(context, user_opt, null);
+    const user_data = try model.user.info(context, user, null);
 
     try util.render(response, view.global.ban, .{
-        .address = address,
+        .hash = hash,
+        .config = context.config,
         .user_data_opt = user_data,
     });
 }
@@ -30,7 +31,7 @@ pub fn post(
     context: Context,
     response: *http.Response,
     request: http.Request,
-    address: []const u8,
+    hash: []const u8,
 ) !void {
     const user = try util.getUser(context, request);
     defer root.util.free(context.alloc, user);
@@ -40,12 +41,36 @@ pub fn post(
 
     const length_str = try util.getField(form, "length");
     const reason = try util.getField(form, "reason");
-    const range_str = try util.getField(form, "range");
+    const type_str = try util.getField(form, "type");
 
-    const range = try util.parseRange(range_str);
+    const ban_images = form.fields.get("ban_images") != null;
+    const images = form.fields.get("images") != null;
+    const images_permanent = form.fields.get("images_permanent") != null;
+    const posts = form.fields.get("posts") != null;
+    const posts_permanent = form.fields.get("posts_permanent") != null;
+
+    const @"type" = util.parseBanType(type_str);
     const length = try util.parseLength(length_str);
 
-    try model.ban.add(context, null, address, length, reason, user, range);
+    try model.ban.add(context, null, hash, length, reason, user, @"type");
 
-    try util.message(response, "Global Address Banned!");
+    if (ban_images) {
+        try model.post_image.banByAddress(context, hash, user.name);
+    } else if (images) {
+        if (images_permanent) {
+            try model.post_image.deleteByAddressPermanent(context, hash, user.name);
+        } else {
+            try model.post_image.deleteByAddress(context, null, hash, user.name);
+        }
+    }
+
+    if (posts) {
+        if (posts_permanent) {
+            try model.post.deleteByAddressPermanent(context, hash);
+        } else {
+            try model.post.deleteByAddress(context, null, hash, user.name, reason);
+        }
+    }
+
+    try util.message(context, response, "User Banned!", user);
 }

@@ -26,9 +26,9 @@ pub fn get(
     const board = try model.board.one(context, args.board);
     defer root.util.free(context.alloc, board);
 
-    const user_data = try model.user.info(context, user_opt, args.board);
+    const user_data_opt = try model.user.info(context, user_opt, args.board);
 
-    const flags = model.user.flags(user_data);
+    const flags = model.user.flags(user_data_opt);
 
     const page = try util.getOptPage(args.page);
     const pages = model.thread.pages(context, board, flags);
@@ -45,14 +45,14 @@ pub fn get(
     );
     defer root.util.free(context.alloc, replies);
 
-    try util.render(response, view.board, .{
+    try util.render(response, view.board.board, .{
         .board = board,
         .threads = threads,
         .replies = replies,
         .index = true,
         .page = page,
         .pages = pages,
-        .user_data_opt = user_data,
+        .user_data_opt = user_data_opt,
         .config = context.config,
     });
 }
@@ -69,10 +69,10 @@ pub fn post(
     var form = try request.form(context.alloc);
     defer form.deinit(context.alloc);
 
-    const subject = util.nullIfEmpty(form.fields.get("subject"));
-    const message = util.nullIfEmpty(form.fields.get("body"));
-    const email = util.nullIfEmpty(form.fields.get("email"));
-    const opt = util.nullIfEmpty(form.fields.get("name"));
+    const subject = try util.nullIfEmpty(form, "subject");
+    const message = try util.getMessage(context.config, form, "body");
+    const email = try util.nullIfEmpty(form, "email");
+    const opt = try util.nullIfEmpty(form, "name");
 
     const files = try util.getFiles(context.alloc, form);
     defer context.alloc.free(files);

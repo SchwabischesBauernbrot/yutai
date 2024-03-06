@@ -35,7 +35,7 @@ pub fn get(
 
     const user_data = try model.user.info(context, user_opt, args.board);
 
-    try util.render(response, view.logs, .{
+    try util.render(response, view.board.logs, .{
         .logs = logs,
         .board = board,
         .page = page,

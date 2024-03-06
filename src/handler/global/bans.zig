@@ -20,7 +20,7 @@ pub fn post(
 
     try model.ban.dismiss(context, user, "dismissed", null, ban_id);
 
-    try util.message(response, "Global Ban(s) Dismissed!");
+    try util.message(context, response, "Global Ban(s) Dismissed!", user);
 }
 
 pub const all = bansPage(.all);

@@ -21,5 +21,5 @@ pub fn post(
 
     try util.removeToken(response);
 
-    try util.message(response, "Session Closed!");
+    try util.found(response, "/user/login", .{});
 }

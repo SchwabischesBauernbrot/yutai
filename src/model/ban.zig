@@ -22,6 +22,7 @@ pub fn get(
 
     var buf: [64]u8 = undefined;
     const address = Address.init(addr);
+
     var list: [2][]data.Ban = undefined;
 
     const single = try bufAddressStr(&buf, address);
@@ -79,6 +80,17 @@ pub fn addAddress(
     try util.exec(context, q, .{ board_opt, address, expires, reason, name });
 }
 
+pub fn addNetAddress(
+    context: Context,
+    addr: std.net.Address,
+    reason: []const u8,
+    name: []const u8,
+) !void {
+    var buf: [64]u8 = undefined;
+    const address = try util.bufAddressStr(&buf, addr);
+    try addAddress(context, null, address, 0, reason, name);
+}
+
 pub const State = enum { all, expired, permanent, temporary };
 
 pub fn pages(
@@ -118,7 +130,6 @@ pub fn dismiss(
     id: usize,
 ) !void {
     const q = "close_ban";
-
     try util.exec(context, q, .{ reason, user.name, id, board });
 }
 

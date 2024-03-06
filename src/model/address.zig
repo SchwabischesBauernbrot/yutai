@@ -18,10 +18,22 @@ pub fn add(
     board_opt: ?data.Board,
     address: []const u8,
 ) !void {
-    if (board_opt) |board| {
-        try addLocal(context, board, address);
+    if (context.config.log_user_ip) {
+        if (board_opt) |board| {
+            try addLocal(context, board, address);
+        }
+        try addGlobal(context, address);
     }
-    try addGlobal(context, address);
+}
+
+pub fn addNet(
+    context: Context,
+    board_opt: ?data.Board,
+    addr: std.net.Address,
+) !void {
+    var buf: [64]u8 = undefined;
+    const address = try util.bufAddressStr(&buf, addr);
+    try add(context, board_opt, address);
 }
 
 fn addLocal(

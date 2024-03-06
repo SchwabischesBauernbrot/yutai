@@ -10,8 +10,6 @@
     const flags = root.model.user.flags(user_data_opt);
     const is_op = thread == post.post;
     const is_thread = @hasField(@TypeOf(post), "sticky");
-    
-    const writeBody = util.writeBody;
 ?>
 
 <? if(is_op) { ?>
@@ -48,21 +46,23 @@
         </span>
         <? } ?>
     </label>
-    <? if(flags.atLeastMod()) { ?>
-        ID: <? _ = try partial.id.render(output, .{
-            .board = post.board,
-            .address = post.address,
-            .salt = board.address_salt,
-        }); ?>
-    <? } ?>
-    <? if(flags.atLeastGlobalMod()) { ?>
-        Global ID: <? _ = try partial.global_id.render(output, .{
-            .address = post.address,
-            .salt = config.address_salt,
-        }); ?>
-    <? } ?>
-    <? if(flags.root) { ?>
-        IP: <{post.address}>
+    <? if(post.address) |address| { ?>
+        <? if(flags.atLeastMod()) { ?>
+            ID: <? _ = try partial.id.render(output, .{
+                .board = post.board,
+                .address = address,
+                .salt = board.address_salt,
+            }); ?>
+        <? } ?>
+        <? if(flags.atLeastGlobalMod()) { ?>
+            Global ID: <? _ = try partial.global_id.render(output, .{
+                .address = address,
+                .salt = config.address_salt,
+            }); ?>
+        <? } ?>
+        <? if(flags.root) { ?>
+            IP: <{address}>
+        <? } ?>
     <? } ?>
     <a class="post_no" href="#<[post.post]>">No.</a>
     <[ post.post ]>
@@ -89,15 +89,10 @@
             <? } ?>
         <? } ?>
     <? } ?>
-    <? if(flags.atLeastGlobalMod()) { ?>
-        <a href="/<(post.board)>/post/mod/permanent_delete/<[post.post]>">
-            [Remove]
-        </a>
-    <? } ?>
 </p>
 <? if(thread != post.post) { ?>
     <? _ = try partial.files.render(output, context); ?>
 <? } ?>
 <div class="body" <? if(post_rows.len > 1) { ?> style="clear:both" <? } ?>>
-    <? _ = try writeBody(output, post); ?>
+    <{post.message}>
 </div>

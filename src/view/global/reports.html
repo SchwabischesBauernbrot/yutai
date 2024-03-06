@@ -14,7 +14,7 @@
 
 <html>
 <head>
-    <? _ = try partial.header.render(output, .{}); ?>
+    <? _ = try partial.header.render(output, context); ?>
     <title>
         Global Reports
     </title>
@@ -77,4 +77,6 @@
     </table>
     </form>
     <a href="/mod">Return</a>
+    <? _ = try partial.footer.render(output, context); ?>
 </body>
+</html>

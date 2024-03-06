@@ -9,8 +9,8 @@ const util = handler.util;
 
 const Context = root.Context;
 
-pub fn get(_: Context, response: *http.Response, _: http.Request) !void {
-    try util.render(response, view.login, view);
+pub fn get(context: Context, response: *http.Response, _: http.Request) !void {
+    try util.render(response, view.user.login, .{ .config = context.config });
 }
 
 pub fn post(
@@ -27,6 +27,8 @@ pub fn post(
     const session = try model.user.login(context, name, pass);
     defer root.util.free(context.alloc, session.token);
 
+    try model.address.addNet(context, null, request.address);
     try util.setToken(response, session.token, session.expires);
+
     try util.found(response, "/user", .{});
 }

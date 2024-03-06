@@ -5,6 +5,8 @@
 
 <div class="boardlist">
     <a href="/">[Home]</a>
+    <a href="/rules">[Rules]</a>
+    <a href="/faq">[FAQ]</a>
     <? if(user_data_opt) |user_data| { ?>
         <? if(flags.atLeastGlobalMod()) { ?>
             <a href="/mod">[Global Dashboard]</a>
@@ -14,7 +16,8 @@
                 <a href="/<(board_data.board)>/mod">[Dashboard]</a>
             <? } ?>
         <? } ?>
-        <a href="/user"><(user_data.name)></a>
+        <a href="/user">[User Dashboard]</a>
+        User: <(user_data.name)>
         <a href="/user/logout">[Logout]</a>
     <? } else { ?>
         <a href="/user/register">[Register]</a>

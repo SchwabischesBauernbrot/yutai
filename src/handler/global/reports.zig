@@ -27,7 +27,7 @@ pub fn post(
 
     try model.report.closeList(context, true, null, user, reports, message);
 
-    try util.message(response, "Global Report(s) Closed!");
+    try util.message(context, response, "Global Report(s) Closed!", user);
 }
 
 pub const all = reportsPage(.all);

@@ -1,3 +1,0 @@
-[submodule "lib/zig-BearSSL"]
-	path = lib/zig-BearSSL
-	url = https://codeberg.org/cirefl/zig-BearSSL

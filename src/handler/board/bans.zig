@@ -28,7 +28,7 @@ pub fn post(
 
     try model.ban.dismiss(context, user, "dismissed", board, id);
 
-    try util.message(response, "Ban(s) Dismissed!");
+    try util.message(context, response, "Ban(s) Dismissed!", user);
 }
 
 pub const all = bansPage(.all);
@@ -65,13 +65,14 @@ fn bansPage(
                 args.board,
             );
 
-            try util.render(response, view.bans, .{
+            try util.render(response, view.board.bans, .{
                 .bans = bans,
                 .board = board,
                 .page = page,
                 .pages = pages,
                 .state = state,
                 .user_data_opt = user_data,
+                .config = context.config,
             });
         }
     }.f;

@@ -24,5 +24,5 @@ pub fn delete(
     defer root.util.free(context.alloc, user);
 
     try model.post_image.remove(context, data.id, user);
-    try util.message(response, "Image Deleted!");
+    try util.message(context, response, "Image Deleted!", user);
 }

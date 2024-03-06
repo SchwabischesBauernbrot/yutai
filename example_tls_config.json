@@ -10,7 +10,9 @@
         "key": "key.pem",
         "cert": "cert.pem"
     },
+    
     "max_request_length": 4000000,
+    "max_message_length": 4096,
     
     "icon": null,
     "favicon": "favicon.ico",
@@ -25,12 +27,19 @@
     "default_file_thumbnail": "download.png",
     "deleted_file_thumbnail": "trashcan.png",
     
+    "log_post_ip": true,
+    "log_user_ip": true,
+    
     "page_length": 10,
-    "bump_limit": 4,
+    "bump_limit": 300,
     "reply_count": 5,
-    "board_pages": 5,
+    "board_pages": 10,
+    
     "max_latest_posts": 10,
     "max_latest_images": 10,
+    
+    "max_user_invites": 30,
+    "invite_duration": 2592000,
 
     "thumbnail_size": 250,
     "default_name": "Anon",

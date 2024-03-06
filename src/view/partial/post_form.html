@@ -34,7 +34,13 @@
                 Comment
             </th>
             <td>
-                <textarea name="body" id="body" rows="5" cols="35"></textarea>
+                <textarea
+                    name="body"
+                    id="body"
+                    rows="5"
+                    cols="35"
+                    maxlength="<[context.config.max_message_length]>"
+                ></textarea>
             </td>
         </tr>
         <tr>

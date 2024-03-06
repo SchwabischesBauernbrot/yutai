@@ -23,7 +23,7 @@ pub fn get(context: Context, addr: std.net.Address) !data.Captcha {
     if (opt) |captcha| {
         const date = std.time.timestamp();
         if (captcha.expires < date) {
-            try delete(context, captcha);
+            try deleteExpired(context);
             return try add(context, address);
         } else {
             return captcha;
@@ -40,11 +40,13 @@ pub fn deleteExpired(context: Context) !void {
     defer root.util.free(context.alloc, captchas);
 
     try util.beginTransaction(context);
-    defer util.endTransaction(context) catch {};
+    errdefer util.rollbackTransaction(context) catch {};
 
     for (captchas) |captcha| {
         try delete(context, captcha);
     }
+
+    util.endTransaction(context) catch {};
 }
 
 pub fn match(

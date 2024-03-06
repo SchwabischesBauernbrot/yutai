@@ -28,7 +28,7 @@ pub fn post(
 
     try model.report.closeList(context, false, board, user, reports, message);
 
-    try util.message(response, "Report(s) Closed!");
+    try util.message(context, response, "Report(s) Closed!", user);
 }
 
 pub const all = reportsPage(.all);
@@ -70,13 +70,14 @@ fn reportsPage(
                 args.board,
             );
 
-            try util.render(response, view.reports, .{
+            try util.render(response, view.board.reports, .{
                 .reports = reports,
                 .board = board,
                 .page = page,
                 .pages = pages,
                 .state = state,
                 .user_data_opt = user_data,
+                .config = context.config,
             });
         }
     }.f;

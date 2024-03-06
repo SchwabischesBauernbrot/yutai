@@ -16,10 +16,11 @@ pub fn add(
     context: Context,
     subject: []const u8,
     body: []const u8,
+    html: bool,
     user: data.User,
 ) !void {
     const q = "add_entry";
-    try util.exec(context, q, .{ subject, body, user.name });
+    try util.exec(context, q, .{ subject, body, html, user.name });
 }
 
 pub fn all(context: Context) ![]data.Entry {

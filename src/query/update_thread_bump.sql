@@ -1,11 +1,8 @@
-with args as (select ? as board, ? as thread)
 update thread
-set last_reply = ?
-where post = (select thread from args) and
-    board = (select board from args) and
+set last_reply = $post
+where post = $thread and board = $board and
     (
         select replies
         from thread_reply_count_view
-        where post = (select thread from args) and
-            board = (select board from args)
-    ) < ?;
+        where post = $thread and board = $board
+    ) < $bump_limit;

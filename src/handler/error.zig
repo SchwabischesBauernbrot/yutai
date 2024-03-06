@@ -2,6 +2,7 @@ const std = @import("std");
 const root = @import("root");
 const http = @import("apple_pie");
 
+const view = root.view;
 const model = root.model;
 const handler = root.handler;
 const filter = root.filter;
@@ -10,13 +11,27 @@ const util = handler.util;
 const Context = root.Context;
 
 pub fn handle(
-    _: Context,
+    context: Context,
     response: *http.Response,
+    request_opt: ?http.Request,
     err: anyerror,
 ) anyerror!void {
     if (response.empty()) {
+        const user_opt = if (request_opt) |request|
+            try util.getUserOpt(context, request)
+        else
+            null;
+        defer root.util.free(context.alloc, user_opt);
+
+        const user_data_opt = try model.user.info(context, user_opt, null);
+
         response.status_code = toStatus(err);
-        try util.errorView(response, title(err));
+        try util.render(response, view.fail, .{
+            .title = title(err),
+            .message = "",
+            .user_data_opt = user_data_opt,
+            .config = context.config,
+        });
     }
 }
 

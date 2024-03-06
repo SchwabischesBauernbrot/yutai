@@ -17,19 +17,25 @@ pub const Data = struct {
 pub fn sticky(
     context: Context,
     response: *http.Response,
-    _: http.Request,
+    request: http.Request,
     data: Data,
 ) !void {
+    const user = try util.getUser(context, request);
+    defer root.util.free(context.alloc, user);
+
     try model.thread.sticky(context, data.board, data.thread, true);
-    try util.message(response, "Thread Updated!");
+    try util.message(context, response, "Thread Updated!", user);
 }
 
 pub fn unsticky(
     context: Context,
     response: *http.Response,
-    _: http.Request,
+    request: http.Request,
     data: Data,
 ) !void {
+    const user = try util.getUser(context, request);
+    defer root.util.free(context.alloc, user);
+
     try model.thread.sticky(context, data.board, data.thread, false);
-    try util.message(response, "Thread Updated!");
+    try util.message(context, response, "Thread Updated!", user);
 }

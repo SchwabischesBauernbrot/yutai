@@ -1,0 +1,70 @@
+<?
+    const config = context.config;
+    const logs = context.logs;
+    const board = context.board;
+    
+    var buff = [_]u8{0}**256;
+    const url = try std.fmt.bufPrint(&buff, "/{s}/logs/", .{board.board});
+    
+    const user_data_opt = context.user_data_opt;
+    const flags = root.model.user.flags(user_data_opt);
+?>
+
+<html>
+<head>
+    <? _ = try partial.header.render(output, context); ?>
+    <title>
+        Logs - /<(board.board)>/
+    </title>
+</head>
+<body>
+    <? _ = try partial.top.render(output, context); ?>
+    <header>
+        <h1>
+            Logs - /<(board.board)>/
+        </h1>
+    </header>
+    <? _ = try partial.pages.render(output, .{
+        .page = context.page,
+        .pages = context.pages,
+        .url = url
+    }); ?>
+    <? for(logs) |log| { ?>
+    <div class="report">
+        <hr>
+        <div style="width: 200; float: left; display: inline;">
+            <? _ = try partial.date.render(output, .{.date = log.date}); ?>
+            <? if(flags.mod) { ?>
+                <br>
+                ID: <? _ = try partial.id.render(output, .{
+                        .board = board.board,
+                        .address = log.address,
+                        .salt = board.address_salt,
+                    });
+                ?>
+            <? } ?>
+            <? if(flags.global_mod) { ?>
+                <br>
+                Global ID: <? _ = try partial.global_id.render(output, .{
+                        .address = log.address,
+                        .salt = config.address_salt,
+                    });
+                ?>
+            <? } ?>
+            <? if(flags.root) { ?> <br>(<{log.address}>) <? } ?>
+        </div>
+        <div style="display: inline;">
+            <{log.message}>
+        </div>
+    </div>
+    <? } ?>
+    <hr>
+    <? _ = try partial.pages.render(output, .{
+        .page = context.page,
+        .pages = context.pages,
+        .url = url
+    }); ?>
+    <a href="/<(board.board)>/mod">Return</a>
+    <? _ = try partial.footer.render(output, context); ?>
+</body>
+</html>

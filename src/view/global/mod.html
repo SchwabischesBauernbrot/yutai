@@ -5,7 +5,7 @@
 
 <html>
 <head>
-    <? _ = try partial.header.render(output, .{}); ?>
+    <? _ = try partial.header.render(output, context); ?>
     <title>
         Global Dashboard
     </title>
@@ -28,7 +28,7 @@
         [<a href="/logs/1"> logs </a>]
     </center>
     <hr>
-    <h1>Moderators</h1>
+    <h2>Moderators</h2>
     <? for(mods) |mod| { ?>
     <div class="report">
         Name: <( mod.name )>
@@ -52,7 +52,7 @@
         </table>
     </form>
     <hr>
-    <h1>Boards</h1>
+    <h2>Boards</h2>
     <? for(boards) |board| { ?>
     <div class="report">
         <a href="/<{board.board}>/">
@@ -104,5 +104,6 @@
     </form>
     <hr>
     <a href="/">Return</a>
+    <? _ = try partial.footer.render(output, context); ?>
 </body>
 </html>

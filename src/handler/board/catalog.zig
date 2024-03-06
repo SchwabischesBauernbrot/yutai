@@ -28,7 +28,7 @@ pub fn get(
     const threads = try model.thread.catalog(context, board, flags);
     defer root.util.free(context.alloc, threads);
 
-    try util.render(response, view.catalog, .{
+    try util.render(response, view.board.catalog, .{
         .board = board,
         .threads = threads,
         .user_data_opt = user_data,

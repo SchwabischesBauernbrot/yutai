@@ -26,10 +26,11 @@ pub fn get(
     const mods = try model.mod.all(context, board);
     defer root.util.free(context.alloc, mods);
 
-    try util.render(response, view.mod, .{
+    try util.render(response, view.board.mod, .{
         .board = board,
         .mods = mods,
         .user_data_opt = user_data,
+        .config = context.config,
     });
 }
 
@@ -46,7 +47,7 @@ pub fn name(
 
     try model.board.updateName(context, board, new);
 
-    try util.message(response, "Board Name Updated!");
+    try util.found(response, "/{s}/mod", .{board});
 }
 
 pub fn description(
@@ -62,7 +63,7 @@ pub fn description(
 
     try model.board.updateDescription(context, board, new);
 
-    try util.message(response, "Board description Updated!");
+    try util.found(response, "/{s}/mod", .{board});
 }
 
 pub fn add(
@@ -77,7 +78,7 @@ pub fn add(
     const new_data = try util.getField(form, "new_mod");
 
     try model.mod.add(context, board, new_data);
-    try util.message(response, "New Mod Added!");
+    try util.found(response, "/{s}/mod", .{board});
 }
 
 pub const RemoveData = struct {
@@ -92,5 +93,5 @@ pub fn remove(
     args: RemoveData,
 ) !void {
     try model.mod.remove(context, args.board, args.name);
-    try util.message(response, "Mod Removed!");
+    try util.found(response, "/{s}/mod", .{args.board});
 }

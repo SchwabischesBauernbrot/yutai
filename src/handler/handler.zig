@@ -12,6 +12,8 @@ pub const global = struct {
     pub const bans = @import("global/bans.zig");
     pub const ban = @import("global/ban.zig");
     pub const image = @import("global/image.zig");
+    pub const rules = @import("global/rules.zig");
+    pub const faq = @import("global/faq.zig");
 };
 
 pub const board = struct {

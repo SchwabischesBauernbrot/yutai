@@ -17,6 +17,10 @@ const bufImagePath = util.bufImagePath;
 const bufThumbnailPath = util.bufThumbnailPath;
 const bufThumbnailPathZ = util.bufThumbnailPathZ;
 
+pub fn get(context: Context, hash: []const u8) !?data.Image {
+    return try util.oneAlloc(data.Image, context, "get_image", .{hash});
+}
+
 pub fn add(
     context: Context,
     name: []const u8,
@@ -29,8 +33,7 @@ pub fn add(
 
     var hash_buf: [128]u8 = undefined;
     const hash = util.md5(&hash_buf, file);
-    const count_opt = try util.one(usize, context, "count_image", .{hash});
-    const count = count_opt.?;
+    const count = util.oneSize(context, "count_image", .{hash});
 
     if (count == 0) { //new image
         var extension = std.fs.path.extension(name);
@@ -69,13 +72,6 @@ pub fn add(
     );
 }
 
-pub fn latest(context: Context) ![]data.PostImage {
-    const config = context.config;
-    const q = "get_latest_images";
-    const limit = config.max_latest_images;
-    return try util.all(data.PostImage, context, q, .{limit});
-}
-
 pub fn remove(context: Context, id: []const u8, user: data.User) !void {
     try util.exec(context, "delete_post_image", .{ user.name, id });
 }
@@ -92,46 +88,118 @@ pub fn permanentRemove(
     try erase(image.?);
 }
 
-pub fn ban(context: Context, hash: []const u8, user: data.User) !void {
-    const image = try get(context, hash);
-    defer root.util.free(context.alloc, image);
-
-    try util.exec(context, "ban_image", .{ user.name, hash });
-    try erase(image.?);
-
-    const posters = try posted(context, hash);
-    for (posters) |address| {
-        try model.ban.addAddress(
-            context,
-            null,
-            address,
-            0,
-            "banned image",
-            user.name,
-        );
+pub fn ban(context: Context, hash: []const u8, mod: data.User) !void {
+    const opt = try get(context, hash);
+    defer root.util.free(context.alloc, opt);
+    if (opt) |image| {
+        try util.beginTransaction(context);
+        errdefer util.rollbackTransaction(context) catch {};
+        try banImage(context, mod.name, image);
+        try util.endTransaction(context);
     }
+}
+
+pub fn latest(context: Context) ![]data.PostImage {
+    const config = context.config;
+    const q = "get_latest_images";
+    const limit = config.max_latest_images;
+    return try util.all(data.PostImage, context, q, .{limit});
 }
 
 pub fn clear(context: Context) !void {
     try util.beginTransaction(context);
-    const files = blk: {
-        errdefer util.endTransaction(context) catch {};
-        const tmp = try unused.all(context);
-        try unused.clear(context);
-        break :blk tmp;
-    };
+    errdefer util.rollbackTransaction(context) catch {};
+
+    const files = try unused.all(context);
     defer root.util.free(context.alloc, files);
-    util.endTransaction(context) catch {};
+
+    try unused.clear(context);
+    try util.endTransaction(context);
 
     for (files) |file| try erase(file);
 }
 
-fn posted(context: Context, hash: []const u8) ![][]const u8 {
-    return try util.all([]const u8, context, "get_image_posters", .{hash});
+pub fn deleteByAddress(
+    context: Context,
+    board_opt: ?[]const u8,
+    hash: []const u8,
+    mod: []const u8,
+) !void {
+    const address = try model.address.get(context, board_opt, hash);
+    defer root.util.free(context.alloc, address);
+
+    try util.exec(context, "delete_address_images", .{
+        .moderator = mod,
+        .address = address,
+        .board = board_opt,
+    });
 }
 
-pub fn get(context: Context, hash: []const u8) !?data.Image {
-    return try util.oneAlloc(data.Image, context, "get_image", .{hash});
+pub fn deleteByAddressPermanent(
+    context: Context,
+    hash: []const u8,
+    mod: []const u8,
+) !void {
+    const q = "delete_address_images_permanent";
+
+    const address = try model.address.get(context, null, hash);
+    defer root.util.free(context.alloc, address);
+
+    try util.beginTransaction(context);
+    errdefer util.rollbackTransaction(context) catch {};
+
+    const files = try getAddressImages(context, address, .none);
+    defer root.util.free(context.alloc, files);
+
+    try util.exec(context, q, .{ mod, address });
+    try util.endTransaction(context);
+
+    for (files) |file| try erase(file);
+}
+
+pub fn banByAddress(
+    context: Context,
+    hash: []const u8,
+    mod: []const u8,
+) !void {
+    const address = try model.address.get(context, null, hash);
+    defer root.util.free(context.alloc, address);
+
+    try util.beginTransaction(context);
+    errdefer util.rollbackTransaction(context) catch {};
+
+    const files = try getAddressImages(context, address, .removed);
+    defer root.util.free(context.alloc, files);
+
+    try util.exec(context, "ban_address_images", .{ mod, address });
+    try util.endTransaction(context);
+
+    for (files) |file| try banImage(context, mod, file);
+}
+
+fn getAddressImages(
+    context: Context,
+    address: []const u8,
+    state: data.Image.State,
+) ![]data.Image {
+    const q = "get_address_images";
+    return try util.all(data.Image, context, q, .{ address, state });
+}
+
+fn banImage(context: Context, mod: []const u8, file: data.Image) !void {
+    try util.exec(context, "ban_image", .{ mod, file.hash });
+    try erase(file);
+
+    const addBan = model.ban.addAddress;
+    const posters = try posted(context, file.hash);
+    for (posters) |address| {
+        const reason = "banned image";
+        try addBan(context, null, address, 0, reason, mod);
+    }
+}
+
+fn posted(context: Context, hash: []const u8) ![][]const u8 {
+    return try util.all([]const u8, context, "get_image_posters", .{hash});
 }
 
 fn erase(file: data.Image) !void {
@@ -140,8 +208,10 @@ fn erase(file: data.Image) !void {
         const path = try bufImagePath(&buf, file.hash, file.ext);
         try util.deleteFile(path);
 
-        const tpath = try bufThumbnailPath(&buf, file.hash);
-        try util.deleteFile(tpath);
+        if (file.thumb_width != null) {
+            const tpath = try bufThumbnailPath(&buf, file.hash);
+            try util.deleteFile(tpath);
+        }
     }
 }
 

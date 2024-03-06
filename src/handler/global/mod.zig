@@ -30,6 +30,7 @@ pub fn get(
         .boards = boards,
         .mods = mods,
         .user_data_opt = user_data,
+        .config = context.config,
     });
 }
 
@@ -44,7 +45,7 @@ pub fn addMod(
     const new_data = try util.getField(form, "new_mod");
 
     try model.mod.add(context, null, new_data);
-    try util.message(response, "New Global Mod Added!");
+    try util.found(response, "/mod", .{});
 }
 
 pub fn removeMod(
@@ -54,7 +55,7 @@ pub fn removeMod(
     name: []const u8,
 ) !void {
     try model.mod.remove(context, null, name);
-    try util.message(response, "Global Mod Removed!");
+    try util.found(response, "/mod", .{});
 }
 
 pub fn addBoard(
@@ -71,7 +72,7 @@ pub fn addBoard(
     const owner = try util.getField(form, "owner");
 
     try model.board.add(context, board, name, description, owner);
-    try util.message(response, "New Board Added!");
+    try util.found(response, "/{s}/", .{board});
 }
 
 pub fn removeBoard(
@@ -81,5 +82,5 @@ pub fn removeBoard(
     name: []const u8,
 ) !void {
     try model.board.remove(context, name);
-    try util.message(response, "Board Removed!");
+    try util.found(response, "/mod", .{});
 }

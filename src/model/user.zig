@@ -11,7 +11,6 @@ const util = model.util;
 const Context = root.Context;
 
 const DataError = model.DataError;
-const Error = model.Error;
 
 pub const Session = struct {
     token: []const u8,
@@ -26,6 +25,7 @@ pub const Data = struct {
     };
 
     name: []const u8,
+    theme: []const u8,
     is_root: bool,
     is_global_mod: bool,
     board_data_opt: ?Board = null,
@@ -37,6 +37,21 @@ pub const Flags = packed struct {
     global_mod: bool = false,
     root: bool = false,
     user: bool = false,
+
+    pub fn atLeastMod(self: *const @This()) bool {
+        return self.any(at_least_mod);
+    }
+
+    pub fn atLeastGlobalMod(self: *const @This()) bool {
+        return self.any(at_least_global_mod);
+    }
+
+    pub fn any(self: *const @This(), mask: @This()) bool {
+        const Int = @typeInfo(@This()).Struct.backing_integer.?;
+        const a = @as(Int, @bitCast(self.*));
+        const b = @as(Int, @bitCast(mask));
+        return (a & b) != 0;
+    }
 
     pub const at_least_root: @This() = .{
         .root = true,
@@ -55,22 +70,13 @@ pub const Flags = packed struct {
         .global_mod = true,
         .mod = true,
     };
-
-    pub fn atLeastMod(self: *const @This()) bool {
-        return self.any(at_least_mod);
-    }
-
-    pub fn atLeastGlobalMod(self: *const @This()) bool {
-        return self.any(at_least_global_mod);
-    }
-
-    pub fn any(self: *const @This(), mask: @This()) bool {
-        const Int = @typeInfo(@This()).Struct.backing_integer.?;
-        const a = @as(Int, @bitCast(self.*));
-        const b = @as(Int, @bitCast(mask));
-        return (a & b) != 0;
-    }
 };
+
+pub fn get(context: Context, name: []const u8) !data.User {
+    const q = "get_username";
+    return (try util.oneAlloc(data.User, context, q, .{name})) orelse
+        error.NotFound;
+}
 
 pub fn info(
     context: Context,
@@ -79,6 +85,7 @@ pub fn info(
 ) !?Data {
     return if (user_opt) |user| .{
         .name = user.name,
+        .theme = user.theme,
         .is_global_mod = try isGlobalMod(context, user.name),
         .is_root = isRoot(context, user.name),
         .board_data_opt = if (board_opt) |board| .{
@@ -108,23 +115,30 @@ pub fn add(
     name: []const u8,
     pass: []const u8,
 ) !Session {
+    const config = context.config;
+    const default_theme = config.default_theme;
     const rng = context.rng;
     const q = "add_user";
-    const salt_size = 0x20;
+    const salt_size = 32;
 
     var buf: [salt_size]u8 = undefined;
     const salt = util.randStr(rng, &buf);
     const hash = try util.sha256Salt(pass, salt);
 
-    util.exec(context, q, .{ name, &hash, salt }) catch |err|
+    util.exec(context, q, .{ name, &hash, salt, default_theme }) catch |err|
         return switch (err) {
-        sqlite.Error.SQLiteConstraint => Error.ExistingUser,
+        sqlite.Error.SQLiteConstraint => error.ExistingUser,
         else => err,
     };
 
     return try newSession(
         context,
-        data.User{ .name = name, .pass = &hash, .salt = salt },
+        data.User{
+            .name = name,
+            .pass = &hash,
+            .salt = salt,
+            .theme = default_theme,
+        },
     );
 }
 
@@ -165,6 +179,14 @@ pub fn updatePassword(
     const hash = try util.sha256Salt(new, salt);
 
     try util.exec(context, q, .{ &hash, salt, user.name });
+}
+
+pub fn updateTheme(
+    context: Context,
+    user: data.User,
+    new: []const u8,
+) !void {
+    try util.exec(context, "update_user_theme", .{ new, user.name });
 }
 
 pub fn optSession(context: Context, session: []const u8) !?data.User {
@@ -222,7 +244,7 @@ fn updateSession(
     try util.exec(context, q, .{ session, expires, user.name });
 }
 
-fn isRoot(context: Context, user: []const u8) bool {
+pub fn isRoot(context: Context, user: []const u8) bool {
     return std.mem.eql(u8, user, context.config.root_user);
 }
 

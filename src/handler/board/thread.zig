@@ -36,7 +36,7 @@ pub fn get(
     const replies = try model.reply.all(context, board, rows[0], flags);
     defer root.util.free(context.alloc, replies);
 
-    try util.render(response, view.thread, .{
+    try util.render(response, view.board.thread, .{
         .board = board,
         .thread_rows = rows,
         .replies_rows = replies,
@@ -58,10 +58,10 @@ pub fn post(
     var form = try request.form(context.alloc);
     defer form.deinit(context.alloc);
 
-    const subject = util.nullIfEmpty(form.fields.get("subject"));
-    const message = util.nullIfEmpty(form.fields.get("body"));
-    const email = util.nullIfEmpty(form.fields.get("email"));
-    const name = util.nullIfEmpty(form.fields.get("name"));
+    const subject = try util.nullIfEmpty(form, "subject");
+    const message = try util.getMessage(context.config, form, "body");
+    const email = try util.nullIfEmpty(form, "email");
+    const name = try util.nullIfEmpty(form, "name");
 
     const files = try util.getFiles(context.alloc, form);
     defer context.alloc.free(files);

@@ -15,6 +15,9 @@ pub fn post(
     request: http.Request,
     board: []const u8,
 ) !void {
+    const user_opt = try util.getUserOpt(context, request);
+    defer root.util.free(context.alloc, user_opt);
+
     var form = try request.form(context.alloc);
     defer form.deinit(context.alloc);
 
@@ -24,8 +27,8 @@ pub fn post(
     const posts = try util.getPosts(context.alloc, form.fields);
     defer context.alloc.free(posts);
 
-    const addr = request.address;
-    try model.post.reportList(context, global, board, addr, posts, reason);
+    const address = request.address;
+    try model.post.reportList(context, global, board, address, posts, reason);
 
-    try util.message(response, "Post(s) Reported!");
+    try util.message(context, response, "Post(s) Reported!", user_opt);
 }

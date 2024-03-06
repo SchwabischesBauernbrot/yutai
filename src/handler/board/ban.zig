@@ -11,7 +11,7 @@ const Context = root.Context;
 
 pub const Data = struct {
     board: []const u8,
-    address: []const u8,
+    hash: []const u8,
 };
 
 pub fn get(
@@ -20,14 +20,18 @@ pub fn get(
     request: http.Request,
     args: Data,
 ) !void {
-    const user_opt = try util.getUserOpt(context, request);
-    defer root.util.free(context.alloc, user_opt);
+    const user = try util.getUser(context, request);
+    defer root.util.free(context.alloc, user);
 
-    const user_data = try model.user.info(context, user_opt, args.board);
+    const board = try model.board.one(context, args.board);
+    defer root.util.free(context.alloc, board);
 
-    try util.render(response, view.ban, .{
-        .board = args.board,
-        .address = args.address,
+    const user_data = try model.user.info(context, user, args.board);
+
+    try util.render(response, view.board.ban, .{
+        .board = board,
+        .hash = args.hash,
+        .config = context.config,
         .user_data_opt = user_data,
     });
 }
@@ -39,7 +43,6 @@ pub fn post(
     args: Data,
 ) !void {
     const board = args.board;
-    const address = args.address;
 
     const user = try util.getUser(context, request);
     defer root.util.free(context.alloc, user);
@@ -49,12 +52,22 @@ pub fn post(
 
     const length_str = try util.getField(form, "length");
     const reason = try util.getField(form, "reason");
-    const range_str = try util.getField(form, "range");
+    const type_str = try util.getField(form, "type");
+    const images = form.fields.get("images") != null;
+    const posts = form.fields.get("posts") != null;
 
-    const range = try util.parseRange(range_str);
+    const @"type" = util.parseBanType(type_str);
     const length = try util.parseLength(length_str);
 
-    try model.ban.add(context, board, address, length, reason, user, range);
+    try model.ban.add(context, board, args.hash, length, reason, user, @"type");
 
-    try util.message(response, "Address Banned!");
+    if (images) {
+        try model.post_image.deleteByAddress(context, board, args.hash, user.name);
+    }
+
+    if (posts) {
+        try model.post.deleteByAddress(context, board, args.hash, user.name, reason);
+    }
+
+    try util.message(context, response, "User Banned!", user);
 }

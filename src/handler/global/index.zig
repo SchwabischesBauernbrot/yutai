@@ -14,6 +14,9 @@ pub fn get(
     response: *http.Response,
     request: http.Request,
 ) !void {
+    const user_opt = try util.getUserOpt(context, request);
+    defer root.util.free(context.alloc, user_opt);
+
     const boards = try model.board.all(context);
     defer root.util.free(context.alloc, boards);
 
@@ -29,19 +32,16 @@ pub fn get(
     const stats = try model.stats.get(context);
     defer root.util.free(context.alloc, stats);
 
-    const user_opt = try util.getUserOpt(context, request);
-    defer root.util.free(context.alloc, user_opt);
+    const user_data_opt = try model.user.info(context, user_opt, null);
 
-    const user_data = try model.user.info(context, user_opt, null);
-
-    try util.render(response, view.home, .{
+    try util.render(response, view.global.home, .{
         .config = context.config,
         .boards = boards,
         .news = entries,
         .recent_posts = posts,
         .recent_images = images,
         .stats = stats,
-        .user_data_opt = user_data,
+        .user_data_opt = user_data_opt,
     });
 }
 
@@ -58,8 +58,9 @@ pub fn post(
 
     const subject = try util.getField(form, "subject");
     const message = try util.getField(form, "message");
+    const html = form.fields.get("html") != null;
 
-    try model.entry.add(context, subject, message, user);
+    try model.entry.add(context, subject, message, html, user);
 
-    try util.message(response, "New Entry Added!");
+    try util.found(response, "/", .{});
 }

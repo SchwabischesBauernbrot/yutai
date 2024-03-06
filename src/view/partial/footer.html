@@ -1,3 +1,12 @@
 <?
-    _ = context;
+    const config = context.config;
 ?>
+
+<footer>
+	<div class="unimportant" style="margin-top:20px;text-align:center;">
+        - <a href="https://codeberg.org/cirefl/yutai-invites">Yutai</a> -
+    </div>
+    <? if(config.log_post_ip or config.log_user_ip) { ?>
+        <div class="unimportant" style="text-align:center;">(logging addresses)</div>
+    <? } ?>
+</footer>

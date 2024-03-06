@@ -1,0 +1,51 @@
+<html>
+<head>
+    <? _ = try partial.header.render(output, context); ?>
+    <title> Register </title>
+</head>
+<body>
+    <header>
+        <h1> Register </h1>
+    </header>
+    <form name="register" method="post">
+        <table>
+            <tr>
+                <th>
+                    Name
+                </th>
+                <td>
+                    <input type="text" name="name" size="25" maxlength="35">
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    Pass
+                </th>
+                <td>
+                    <input type="password" name="pass" size="25" maxlength="40">
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    Captcha
+                </th>
+                <td>
+                    <input style="float:left;" type="text" name="captcha" size="22" maxlength="6" autocomplete="off">
+                    <input style="margin-left:2px;" type="submit" value="Register">
+                    <br>
+                    <img src="/captcha">
+                </td>
+            </tr>
+        </table>
+    </form>
+    <center>
+        <a href="/user/login">Login</a>
+        <br>
+        <a href="/rules">Rules</a>
+        <a href="/faq">FAQ</a>
+    </center>
+    <hr>
+    <a href="/">Return</a>
+    <? _ = try partial.footer.render(output, context); ?>
+</body>
+</html>

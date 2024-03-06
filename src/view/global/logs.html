@@ -8,7 +8,7 @@
 
 <html>
 <head>
-    <? _ = try partial.header.render(output, .{}); ?>
+    <? _ = try partial.header.render(output, context); ?>
     <title>
         Global Logs
     </title>
@@ -42,4 +42,6 @@
     <? } ?>
     <hr>
     <a href="/mod">Return</a>
+    <? _ = try partial.footer.render(output, context); ?>
 </body>
+</html>

@@ -1,6 +1,7 @@
 insert into entry (
     subject,
     body,
+    html,
     date,
     name
-) values (?, ?, unixepoch(), ?);
+) values (?, ?, ?, unixepoch(), ?);

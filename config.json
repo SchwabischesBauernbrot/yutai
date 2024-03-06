@@ -5,7 +5,9 @@
     },
     
     "https": null,
+    
     "max_request_length": 4000000,
+    "max_message_length": 4096,
     
     "icon": null,
     "favicon": "favicon.ico",
@@ -16,16 +18,23 @@
     
     "ppoll_timeout": 60,
     
-    "no_file_thumbnail": "talk.png",
-    "default_file_thumbnail": "download.png",
-    "deleted_file_thumbnail": "trashcan.png",
+    "no_file_thumbnail": "assets/talk.png",
+    "default_file_thumbnail": "assets/download.png",
+    "deleted_file_thumbnail": "assets/trashcan.png",
+    
+    "log_post_ip": true,
+    "log_user_ip": true,
     
     "page_length": 10,
-    "bump_limit": 4,
+    "bump_limit": 300,
     "reply_count": 5,
-    "board_pages": 5,
+    "board_pages": 10,
+    
     "max_latest_posts": 10,
     "max_latest_images": 10,
+    
+    "max_user_invites": 30,
+    "invite_duration": 2592000,
 
     "thumbnail_size": 250,
     "default_name": "Anon",
@@ -37,5 +46,33 @@
         "font": "static/fonts/LiberationMono-Regular.ttf",
         "duration": 3600,
         "code_length": 6
-    }
+    },
+    
+    "themes": {
+        "yotsuba_b": "static/stylesheets/yotsuba_b.css",
+        "stripes": "static/stylesheets/stripes.css",
+        "futaba": "static/stylesheets/futaba.css",
+        "sis": "static/stylesheets/sis.css",
+        "nigrachan": "static/stylesheets/nigrachan.css",
+        "dark": "static/stylesheets/dark.css",
+        "jungle": "static/stylesheets/jungle.css",
+        "roach": "static/stylesheets/roach.css",
+        "ferus": "static/stylesheets/ferus.css",
+        "northboard_cb": "static/stylesheets/northboard_cb.css",
+        "yotsuba": "static/stylesheets/yotsuba.css",
+        "futaba+vichan": "static/stylesheets/futaba+vichan.css",
+        "v8ch": "static/stylesheets/v8ch.css",
+        "gentoochan": "static/stylesheets/gentoochan.css",
+        "novo_jungle": "static/stylesheets/novo_jungle.css",
+        "burichan": "static/stylesheets/burichan.css",
+        "miku": "static/stylesheets/miku.css",
+        "notsuba": "static/stylesheets/notsuba.css",
+        "wasabi": "static/stylesheets/wasabi.css",
+        "futaba-light": "static/stylesheets/futaba-light.css",
+        "dark_roach": "static/stylesheets/dark_roach.css",
+        "favela": "static/stylesheets/favela.css",
+        "photon": "static/stylesheets/photon.css",
+        "sharp": "static/stylesheets/sharp.css"
+    },
+    "default_theme": "yotsuba_b"
 }

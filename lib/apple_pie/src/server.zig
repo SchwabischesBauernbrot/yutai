@@ -18,22 +18,12 @@ const Response = resp.Response;
 const Allocator = std.mem.Allocator;
 const Queue = atomic.Queue;
 
-pub const CertData = struct {
-    certs: [*c]c.br_x509_certificate,
-    certs_num: usize,
-    key: *c.private_key,
-
-    pub fn init(cert_path: [:0]const u8, key_path: [:0]const u8) @This() {
-        var ret: @This() = undefined;
-        ret.certs = c.read_certificates(cert_path.ptr, &ret.certs_num);
-        ret.key = c.read_private_key(key_path.ptr);
-        return ret;
-    }
-
-    pub fn deinit(self: *@This()) void {
-        c.free_certificates(self.certs, self.certs_num);
-        c.free_private_key(self.key);
-    }
+pub const Error = error{
+    FailedContext,
+    FailedHandshake,
+    PemFileError,
+    SSLError,
+    SSLFDError,
 };
 
 pub const HttpData = struct {
@@ -42,7 +32,8 @@ pub const HttpData = struct {
 
 pub const HttpsData = struct {
     address: net.Address,
-    cert_data: CertData,
+    cert_path: [:0]const u8,
+    key_path: [:0]const u8,
 };
 
 pub fn RequestHandler(comptime Context: type) type {
@@ -50,7 +41,7 @@ pub fn RequestHandler(comptime Context: type) type {
 }
 
 pub fn ErrorHandler(comptime Context: type) type {
-    return fn (Context, *Response, anyerror) anyerror!void;
+    return fn (Context, *Response, ?Request, anyerror) anyerror!void;
 }
 
 const max_buffer_size = blk: {
@@ -136,9 +127,13 @@ pub fn Server(
 
             //HTTPS----------------
 
+            var ssl_ctx: ?*c.SSL_CTX = null;
+            defer if (ssl_ctx) |ctx| c.SSL_CTX_free(ctx);
+
             var https_stream_opt: ?net.StreamServer =
                 if (https_opt) |https|
             blk: {
+                ssl_ctx = try createContext(https);
                 var stream = net.StreamServer.init(options);
                 try stream.listen(https.address);
                 break :blk stream;
@@ -187,9 +182,8 @@ pub fn Server(
                 }
                 if (fds[1].revents & std.os.POLL.IN != 0) {
                     const https_stream = &https_stream_opt.?;
-                    const cert_data = https_opt.?.cert_data;
                     if (accept(https_stream)) |connection| {
-                        try self.runTlsClient(cert_data, connection, context);
+                        try self.runTlsClient(ssl_ctx.?, connection, context);
                     }
                 }
             }
@@ -220,7 +214,7 @@ pub fn Server(
 
         fn runTlsClient(
             self: *@This(),
-            cert_data: CertData,
+            ssl_ctx: *c.SSL_CTX,
             connection: net.StreamServer.Connection,
             context: anytype,
         ) !void {
@@ -235,7 +229,7 @@ pub fn Server(
                 self.alloc,
                 &self.clients,
                 context,
-                cert_data,
+                ssl_ctx,
                 connection.stream,
             });
         }
@@ -270,7 +264,7 @@ fn ClientFn(
             context: Context,
         ) void {
             self.handle(gpa, clients, context) catch |err| {
-                log.debug(
+                log.err(
                     "An error occured with the connection: '{s}'",
                     .{@errorName(err)},
                 );
@@ -278,7 +272,7 @@ fn ClientFn(
                 //    std.debug.dumpStackTrace(trace.*);
                 //}
             };
-            std.os.kill(std.os.linux.getpid(), std.os.SIG.USR1) catch {};
+            signalClientEnd();
         }
 
         fn runTls(
@@ -286,10 +280,18 @@ fn ClientFn(
             gpa: Allocator,
             clients: *Queue(*Self),
             context: Context,
-            cert_data: CertData,
+            ssl_ctx: *c.SSL_CTX,
             stream: net.Stream,
         ) void {
-            self.stream.secure.init(cert_data, stream);
+            self.stream.secure.init(stream, ssl_ctx) catch |err| {
+                log.err(
+                    "An error occured with the handshake: '{s}'",
+                    .{@errorName(err)},
+                );
+                printSSLError();
+                signalClientEnd();
+                return;
+            };
             self.run(gpa, clients, context);
         }
 
@@ -336,9 +338,8 @@ fn ClientFn(
                         error.EndOfStream => return,
                         error.ConnectionResetByPeer => return,
                         else => {
-                            try errorHandler(context, &response, err);
+                            try errorHandler(context, &response, null, err);
                             try response.flush();
-                            try self.stream.flush();
                             continue;
                         },
                     }
@@ -350,15 +351,17 @@ fn ClientFn(
                     parsed_request.context.connection_type == .close;
 
                 handler(context, &response, parsed_request) catch |err| {
+                    if (@errorReturnTrace()) |trace| {
+                        std.debug.dumpStackTrace(trace.*);
+                    }
                     log.debug(
                         "An error occured handling the request: '{s}'",
                         .{@errorName(err)},
                     );
-                    try errorHandler(context, &response, err);
+                    try errorHandler(context, &response, parsed_request, err);
                 };
 
                 if (!response.is_flushed) try response.flush();
-                try self.stream.flush();
 
                 if (response.close) return;
             }
@@ -374,37 +377,25 @@ pub const Stream = union(enum) {
     pub const Writer = std.io.Writer(*@This(), WriteError, write);
 
     pub const Https = struct {
-        const toSelf = rawCast(*@This());
-
         stream: net.Stream,
-        sc: c.br_ssl_server_context,
-        ioc: c.br_sslio_context,
-        buf: [c.BR_SSL_BUFSIZE_BIDI]u8,
+        ctx: *c.SSL_CTX,
+        ssl: *c.SSL,
 
         pub fn init(
             self: *@This(),
-            cert_data: CertData,
             stream: net.Stream,
-        ) void {
-            self.stream = stream;
-            c.br_ssl_server_init_full_rsa(
-                &self.sc,
-                cert_data.certs,
-                cert_data.certs_num,
-                &cert_data.key.key.rsa,
-            );
-            c.br_ssl_engine_set_buffer(
-                &self.sc.eng,
-                toAnyopaque(&self.buf),
-                self.buf.len,
-                1,
-            );
-            _ = c.br_ssl_server_reset(&self.sc);
-            c.br_sslio_init(&self.ioc, &self.sc.eng, rcb, self, wcb, self);
+            ctx: *c.SSL_CTX,
+        ) !void {
+            const ssl = c.SSL_new(ctx) orelse return error.SSLError;
+            self.* = .{ .stream = stream, .ctx = ctx, .ssl = ssl };
+            if (c.SSL_set_fd(self.ssl, self.stream.handle) <= 0)
+                return error.SSLFDError;
+            if (c.SSL_accept(self.ssl) <= 0) return error.FailedHandshake;
         }
 
         pub fn recv(self: *@This(), buf: []u8) ReadError!usize {
-            const l = c.br_sslio_read(&self.ioc, buf.ptr, buf.len);
+            const len = @as(c_int, @intCast(buf.len));
+            const l = c.SSL_read(self.ssl, buf.ptr, len);
             return if (l < 0)
                 ReadError.InputOutput
             else
@@ -412,7 +403,8 @@ pub const Stream = union(enum) {
         }
 
         pub fn send(self: *@This(), buf: []const u8) WriteError!usize {
-            const l = c.br_sslio_write(&self.ioc, buf.ptr, buf.len);
+            const len = @as(c_int, @intCast(buf.len));
+            const l = c.SSL_write(self.ssl, buf.ptr, len);
             return if (l < 0)
                 WriteError.InputOutput
             else
@@ -420,30 +412,9 @@ pub const Stream = union(enum) {
         }
 
         pub fn close(self: *@This()) void {
-            _ = c.br_sslio_close(&self.ioc);
+            _ = c.SSL_shutdown(self.ssl);
+            c.SSL_free(self.ssl);
             self.stream.close();
-        }
-
-        pub fn flush(self: *@This()) !void {
-            if (c.br_sslio_flush(&self.ioc) != 0) {
-                return WriteError.InputOutput;
-            }
-        }
-
-        fn rcb(ctx: ?*anyopaque, buf: [*c]u8, len: usize) callconv(.C) c_int {
-            const self = toSelf(ctx);
-            const l = self.stream.read(buf[0..len]) catch |err| {
-                return -@as(c_int, @intCast(@intFromError(err)));
-            };
-            return @as(c_int, @intCast(l));
-        }
-
-        fn wcb(ctx: ?*anyopaque, buf: [*c]const u8, len: usize) callconv(.C) c_int {
-            const self = toSelf(ctx);
-            const l = self.stream.write(buf[0..len]) catch |err| {
-                return -@as(c_int, @intCast(@intFromError(err)));
-            };
-            return @as(c_int, @intCast(l));
         }
     };
 
@@ -479,13 +450,6 @@ pub const Stream = union(enum) {
         }
     }
 
-    pub fn flush(self: *@This()) WriteError!void {
-        switch (self.*) {
-            .secure => |*stream| try stream.flush(),
-            .plain => {},
-        }
-    }
-
     pub fn shutdown(self: *@This()) !void {
         try std.os.shutdown(self.handle(), .both);
     }
@@ -498,14 +462,42 @@ pub const Stream = union(enum) {
     }
 };
 
-const toAnyopaque = rawCast(?*anyopaque);
+fn createContext(https: HttpsData) !*c.SSL_CTX {
+    const method = c.TLS_server_method();
+    const ctx = c.SSL_CTX_new(method) orelse return error.FailedContext;
 
-fn rawCast(comptime Type: type) fn (ptr: anytype) Type {
-    return struct {
-        fn f(ptr: anytype) Type {
-            return @as(Type, @ptrFromInt(@intFromPtr(ptr)));
-        }
-    }.f;
+    if (c.SSL_CTX_use_certificate_file(
+        ctx,
+        https.cert_path.ptr,
+        c.SSL_FILETYPE_PEM,
+    ) <= 0) {
+        printSSLError();
+        return error.PemFileError;
+    }
+
+    if (c.SSL_CTX_use_PrivateKey_file(
+        ctx,
+        https.key_path.ptr,
+        c.SSL_FILETYPE_PEM,
+    ) <= 0) {
+        printSSLError();
+        return error.PemFileError;
+    }
+
+    return ctx;
+}
+
+fn printSSLError() void {
+    const err = c.ERR_get_error();
+
+    var buf: [128]u8 = undefined;
+    const ptr = c.ERR_error_string(err, &buf);
+    const str = std.mem.span(ptr);
+    std.log.err("SSL Error: {s}", .{str});
+}
+
+fn signalClientEnd() void {
+    std.os.kill(std.os.linux.getpid(), std.os.SIG.USR1) catch {};
 }
 
 fn logRequest(request: Request) void {

@@ -1,16 +1,16 @@
 <?
-    const address = context.address;
+    const hash = context.hash;
 ?>
 
 <html>
 <head>
-    <? _ = try partial.header.render(output, .{}); ?>
-    <title> Ban <(address)> - Global </title>
+    <? _ = try partial.header.render(output, context); ?>
+    <title> Ban <(hash)> - Global </title>
 </head>
 <body>
     <? _ = try partial.top.render(output, context); ?>
     <header>
-        <h1> Ban <(address)> - Global </h1>
+        <h1> Ban <(hash)> - Global </h1>
     </header>
     <center>
         <p>Length Format: { 0 | [&lt;months&gt;M][&lt;weeks&gt;w][&lt;days&gt;d][&lt;hours&gt;h][&lt;minutes&gt;m] }</p>
@@ -21,6 +21,7 @@
         <br>
         0 = Permanent.
     </center>
+    <hr>
     <form name="ban" method="post">
         <table>
             <tr>
@@ -36,11 +37,53 @@
                     Range
                 </th>
                 <td>
-                    <select name="range">
+                    <select name="type">
                         <option value="single">Single</option>
                         <option value="small">Small</option>
                         <option value="large">Large</option>
                     </select>
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    Options
+                </th>
+                <td>
+                    <input
+                        type="checkbox"
+                        name="ban_images"
+                        id="ban_images"
+                        title="Ban all images by this address"
+                    >
+                    <label for="ban_images">Ban all images</label>
+                    <br>
+                    <input
+                        type="checkbox"
+                        name="images"
+                        id="images"
+                        title="Remove all images by this address"
+                    >
+                    <label for="images">Remove all images</label>
+                    [<input
+                            type="checkbox"
+                            name="images_permanent"
+                            id="images_permanent"
+                            title="Permanent remove"
+                        ><label for="images_permanent">Permanent</label> ]
+                    <br>
+                    <input
+                        type="checkbox"
+                        name="posts"
+                        id="posts"
+                        title="Remove all posts by this address"
+                    >
+                    <label for="posts">Remove all posts</label>
+                    [<input
+                            type="checkbox"
+                            name="posts_permanent"
+                            id="posts_permanent"
+                            title="Permanent remove"
+                        ><label for="posts_permanent">Permanent</label> ]
                 </td>
             </tr>
             <tr>
@@ -55,4 +98,6 @@
         </table>
     </form>
     <hr>
+    <? _ = try partial.footer.render(output, context); ?>
 </body>
+</html>

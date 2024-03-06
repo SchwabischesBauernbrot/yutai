@@ -15,6 +15,8 @@ pub const Stats = table.Stats;
 pub const User = table.User;
 pub const Image = table.Image;
 pub const Post = table.Post;
+pub const Invite = table.Invite;
+pub const Parent = table.Parent;
 
 const FileRow = Join(table.PostImage, Image);
 const PostRow = LeftJoin(Post, FileRow);

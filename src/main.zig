@@ -2,11 +2,13 @@ const std = @import("std");
 const http = @import("apple_pie");
 const sqlite = @import("sqlite");
 
+pub const query = @import("query");
+
 pub const c = @import("c.zig");
 pub const util = @import("util.zig");
 pub const data = @import("data/data.zig");
 pub const view = @import("view/view.zig");
-pub const query = @import("query/query.zig");
+//pub const query = @import("query/query.zig");
 pub const model = @import("model/model.zig");
 pub const filter = @import("filter/filter.zig");
 pub const handler = @import("handler/handler.zig");
@@ -27,10 +29,7 @@ pub const Server = http.Server(
 var server_ptr: *Server = undefined;
 
 pub fn main() anyerror!void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{
-        .stack_trace_frames = 24,
-        .thread_safe = true,
-    }){};
+    var gpa = std.heap.GeneralPurposeAllocator(.{ .thread_safe = true }){};
     defer std.debug.assert(gpa.deinit() != .leak);
 
     const alloc = gpa.allocator();
@@ -60,8 +59,12 @@ pub fn main() anyerror!void {
     defer db.deinit();
 
     _ = try db.pragma(void, .{}, "foreign_keys", "1");
+    _ = try db.pragma(void, .{}, "recursive_triggers", "1");
 
-    var statements = try Statements.init(&db);
+    var statements = Statements.init(&db) catch |err| {
+        std.log.debug("{}", .{db.getDetailedError()});
+        return err;
+    };
     defer statements.deinit();
 
     var cache = try Context.Cache.init(config.favicon);
@@ -91,11 +94,11 @@ pub fn main() anyerror!void {
     var https_opt: ?http.HttpsData = if (config.https) |v|
         .{
             .address = try std.net.Address.parseIp(v.ip, v.port),
-            .cert_data = http.CertData.init(v.cert, v.key),
+            .cert_path = v.cert,
+            .key_path = v.key,
         }
     else
         null;
-    defer if (https_opt) |*v| v.cert_data.deinit();
 
     var server: Server = undefined;
 

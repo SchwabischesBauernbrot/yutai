@@ -18,7 +18,7 @@ pub fn add(
     thread: usize,
     addr: std.net.Address,
     subject: ?[]const u8,
-    message: ?[]const u8,
+    message: []const u8,
     email_opt: ?[]const u8,
     name_opt: ?[]const u8,
     files: [][2][]const u8,
@@ -30,7 +30,7 @@ pub fn add(
     const post = board.post_count;
 
     try util.beginTransaction(context);
-    defer util.endTransaction(context) catch {};
+    errdefer util.rollbackTransaction(context) catch {};
 
     try model.post.add(
         context,
@@ -47,12 +47,16 @@ pub fn add(
     for (files) |file| {
         try model.post_image.add(context, file[0], file[1], board, post);
     }
-    try util.exec(context, "update_thread_bump", .{
-        board.board,
-        thread,
-        post,
-        context.config.bump_limit,
-    });
+    if (!sage) {
+        try util.exec(context, "update_thread_bump", .{
+            .post = post,
+            .thread = thread,
+            .board = board.board,
+            .bump_lmit = context.config.bump_limit,
+        });
+    }
+
+    util.endTransaction(context) catch {};
 }
 
 pub fn all(

@@ -1,0 +1,57 @@
+<?
+    const bans = context.bans;
+    const range_bans = context.range_bans;
+    
+    const banned = bans.len > 0;
+    const range_banned = range_bans.len > 0;
+    
+    const Bans = @TypeOf(bans);
+    const Ban = @typeInfo(Bans).Pointer.child;
+    
+    const maxExpires = struct{
+        pub fn f(slice: Bans) ?Ban {
+            var opt: ?Ban = if(slice.len > 0) slice[0] else null;
+            for(slice) |item| {
+                if (item.expires > opt.?.expires) {
+                    opt = item;
+                }
+            }
+            return opt;
+        }
+    }.f;
+    
+    const max_ban_opt = maxExpires(bans);
+    const max_range_ban_opt = maxExpires(range_bans);
+?>
+
+<html>
+<head>
+    <? _ = try partial.header.render(output, context); ?>
+</head>
+<body>
+    <header>
+        <h1>
+            ERROR: posting from a banned ip <? if(range_banned) { ?>range<? } ?>.
+        </h1>
+    </header>
+    <center>
+        <?if (max_ban_opt) |ban| { ?>
+            <? if (ban.expires != 0) { ?>
+                The ban will expire on
+                <? _ = try partial.date.render(output, .{.date = ban.expires}); ?>.
+            <? } else { ?>
+                The ban will never expire.
+            <? } ?>
+        <? } ?>
+        <? if(banned and range_banned) { ?><br><? } ?>
+        <?if (max_range_ban_opt) |ban| { ?>
+            <? if (ban.expires != 0) { ?>
+                The range ban will expire on
+                <? _ = try partial.date.render(output, .{.date = ban.expires}); ?>.
+            <? } else { ?>
+                The range ban will never expire.
+            <? } ?>
+        <? } ?>
+    </center>
+</body>
+</html>

@@ -16,7 +16,7 @@
 
 <html>
 <head>
-    <? _ = try partial.header.render(output, .{}); ?>
+    <? _ = try partial.header.render(output, context); ?>
     <title>
         Global Bans
     </title>
@@ -70,5 +70,6 @@
         .url = url
     }); ?>
     <a href="/mod">Return</a>
+    <? _ = try partial.footer.render(output, context); ?>
 </body>
 </html>

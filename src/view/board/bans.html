@@ -1,0 +1,79 @@
+<?
+    const bans = context.bans;
+    const board = context.board;
+    
+    var buff = [_]u8{0}**256;
+    const fmt = switch(context.state) {
+        .all => "/{s}/bans/all/",
+        .expired => "/{s}/bans/expired/",
+        .temporary => "/{s}/bans/temporary/",
+        .permanent => "/{s}/bans/permanent/",
+    };
+    const url = try std.fmt.bufPrint(&buff, fmt, .{board.board});
+    const date = std.time.timestamp();
+    
+    const user_data_opt = context.user_data_opt;
+    const flags = root.model.user.flags(user_data_opt);
+?>
+
+<html>
+<head>
+    <? _ = try partial.header.render(output, context); ?>
+    <title>
+        Bans - /<(board.board)>/
+    </title>
+</head>
+<body>
+    <? _ = try partial.top.render(output, context); ?>
+    <header>
+        <h1>
+            Bans - /<(board.board)>/
+        </h1>
+    </header>
+    <center> <div class="pages">
+        <a <? if(context.state != .all) { ?> href="/<(board.board)>/bans/all/1" <? } else { ?> class="selected" <? } ?> > all </a>
+        <a <? if(context.state != .expired) { ?> href="/<(board.board)>/bans/expired/1" <? } else { ?> class="selected" <? }  ?> > expired </a>
+        <a <? if(context.state != .temporary) { ?> href="/<(board.board)>/bans/temporary/1" <? } else { ?> class="selected" <? }  ?> > temporary </a>
+        <a <? if(context.state != .permanent) { ?> href="/<(board.board)>/bans/permanent/1" <? } else { ?> class="selected" <? }  ?> > permanent </a>
+    </div> </center>
+    <? _ = try partial.pages.render(output, .{
+        .page = context.page,
+        .pages = context.pages,
+        .url = url
+    }); ?>
+    <? for(bans) |ban| { ?>
+    <div class="report">
+        <hr>
+        Board: <a href="/<( ban.board.? )>/"><( ban.board.? )></a>
+        Address: <? _ = try partial.id.render(output, .{
+            .board = board.board,
+            .address = ban.address,
+            .salt = board.address_salt,
+        }); ?>  <? if(flags.root) { ?>(<{ban.address}>)<? } ?>
+        Date: <? _ = try partial.date.render(output, .{.date = ban.date}); ?>
+        Banned by: <( ban.moderator )>
+        Expires: <? if(ban.expires != 0) { ?>
+            <? _ = try partial.date.render(output, .{.date = ban.expires}); ?>
+        <? } else { ?>
+            Never
+        <? } ?>
+        <? if (!ban.expired(date)) { ?> (
+        <a title="Discard ban" href="/<(ban.board.?)>/bans/dismiss/<[ ban.ban_id ]>">
+            Dismiss
+        </a>
+        ) <? } ?>
+        <br>
+        Reason: <( ban.reason )>
+        <br>
+    </div>
+    <? } ?>
+    <hr>
+    <? _ = try partial.pages.render(output, .{
+        .page = context.page,
+        .pages = context.pages,
+        .url = url
+    }); ?>
+    <a href="/<(board.board)>/mod">Return</a>
+    <? _ = try partial.footer.render(output, context); ?>
+</body>
+</html>

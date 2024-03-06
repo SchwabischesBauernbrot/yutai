@@ -19,9 +19,13 @@ pub const routes = .{
     publicGet("/", handler.global.index.get),
     globalModPost("/", handler.global.index.post),
 
+    //global rules/faq
+    publicGet("/rules", handler.global.rules.get),
+    publicGet("/faq", handler.global.faq.get),
+
     //global ban
-    globalModGet("/ban/:address", handler.global.ban.get),
-    globalModPost("/ban/:address", handler.global.ban.post),
+    globalModGet("/ban/:hash", handler.global.ban.get),
+    globalModPost("/ban/:hash", handler.global.ban.post),
 
     //global reports
     globalModPost("/reports/close", handler.global.reports.post),
@@ -41,8 +45,8 @@ pub const routes = .{
 
     //global mod
     globalModGet("/mod", handler.global.mod.get),
-    globalModPost("/mod/addMod", handler.global.mod.addMod),
-    globalModGet("/mod/removeMod/:name", handler.global.mod.removeMod),
+    rootPost("/mod/addMod", handler.global.mod.addMod),
+    rootGet("/mod/removeMod/:name", handler.global.mod.removeMod),
     globalModPost("/mod/addBoard", handler.global.mod.addBoard),
     globalModGet("/mod/removeBoard/:name", handler.global.mod.removeBoard),
 
@@ -55,10 +59,11 @@ pub const routes = .{
     //user
     userGet("/user", handler.user.index.get),
     userPost("/user/update/pass", handler.user.index.pass),
+    userPost("/user/update/theme", handler.user.index.theme),
     publicGet("/user/login", handler.user.login.get),
-    globalPost("/user/login", handler.user.login.post),
+    simplePost("/user/login", handler.user.login.post),
     publicGet("/user/register", handler.user.register.get),
-    globalPost("/user/register", handler.user.register.post),
+    simplePost("/user/register", handler.user.register.post),
     userGet("/user/logout", handler.user.logout.post),
 
     //post
@@ -76,12 +81,12 @@ pub const routes = .{
     modGet("/:board/mod", handler.board.mod.get),
     modPost("/:board/update/name", handler.board.mod.name),
     modPost("/:board/update/description", handler.board.mod.description),
-    modPost("/:board/mod/add", handler.board.mod.add),
-    modGet("/:board/mod/remove/:name", handler.board.mod.remove),
+    ownerPost("/:board/mod/add", handler.board.mod.add),
+    ownerGet("/:board/mod/remove/:name", handler.board.mod.remove),
 
     //board ban
-    modGet("/:board/ban/:address", handler.board.ban.get),
-    modPost("/:board/ban/:address", handler.board.ban.post),
+    modGet("/:board/ban/:hash", handler.board.ban.get),
+    modPost("/:board/ban/:hash", handler.board.ban.post),
 
     //board reports
     modPost("/:board/reports/close", handler.board.reports.post),
@@ -116,37 +121,47 @@ pub const routes = .{
     publicFilePost("/:board/", handler.board.index.post),
 };
 
-const publicGet = autoFilter(.get, .{});
-const publicPost = autoFilter(.post, post_filters);
-const publicFilePost = autoFilter(.post, file_filters);
-const globalPost = autoFilter(.post, global_post_filters);
+const publicGet = autoFilter(.get, public_filters);
 const userGet = autoFilter(.get, user_filters);
-const userPost = autoFilter(.post, user_post_filters);
 const modGet = autoFilter(.get, mod_filters);
+const ownerGet = autoFilter(.get, owner_filters);
+const globalModGet = autoFilter(.get, global_mod_filters);
+const rootGet = autoFilter(.get, root_filters);
+
+const public_filters = .{};
+const user_filters = public_filters ++ .{filter.user.isUser};
+const mod_filters = public_filters ++ .{filter.user.atLeastMod};
+const owner_filters = public_filters ++ .{filter.user.atLeastOwner};
+const global_mod_filters = public_filters ++ .{filter.user.atLeastGlobalMod};
+const root_filters = public_filters ++ .{filter.user.atLeastRoot};
+
+const simplePost = autoFilter(.post, simple_post_filters);
+const publicPost = autoFilter(.post, public_post_filters);
+const publicFilePost = autoFilter(.post, public_file_post_filters);
+const userPost = autoFilter(.post, user_post_filters);
 const modPost = autoFilter(.post, mod_post_filters);
 const ownerPost = autoFilter(.post, owner_post_filters);
-const globalModGet = autoFilter(.get, global_mod_filters);
-const globalModPost = autoFilter(.post, global_mod_filters);
-const RootPost = autoFilter(.post, root_filters);
+const globalModPost = autoFilter(.post, global_mod_post_filters);
+const rootPost = autoFilter(.post, root_post_filters);
 
-const global_post_filters = .{
-    filter.ban.global,
+const simple_post_filters = .{
+    filter.address.global,
     filter.captcha.post,
 };
 
-const post_filters = .{filter.ban.local} ++ global_post_filters;
-const file_filters = post_filters ++ .{filter.image.post};
+const global_post_filters = .{filter.ban.global} ++ simple_post_filters;
 
-const user_filters = .{filter.user.isUser};
-const mod_filters = .{filter.user.atLeastMod};
-const owner_filters = .{filter.user.atLeastOwner};
+const public_post_filters = public_filters ++ global_post_filters ++ .{
+    filter.ban.local,
+    filter.address.local,
+};
+const public_file_post_filters = public_post_filters ++ .{filter.image.post};
 
-const global_mod_filters = .{filter.user.atLeastGlobalMod};
-const root_filters = .{filter.user.atLeastRoot};
-
-const user_post_filters = global_post_filters ++ user_filters;
-const mod_post_filters = post_filters ++ mod_filters;
-const owner_post_filters = post_filters ++ owner_filters;
+const user_post_filters = user_filters ++ global_post_filters;
+const mod_post_filters = mod_filters ++ global_post_filters;
+const owner_post_filters = owner_filters ++ global_post_filters;
+const global_mod_post_filters = global_mod_filters ++ .{filter.address.global};
+const root_post_filters = root_filters ++ .{filter.address.global};
 
 const AutoFilter = fn (comptime []const u8, comptime anytype) Route;
 fn autoFilter(

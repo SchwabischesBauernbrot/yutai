@@ -21,24 +21,33 @@ pub fn add(
     thread: ?usize,
     addr: std.net.Address,
     subject: ?[]const u8,
-    message: ?[]const u8,
+    message: []const u8,
     email: ?[]const u8,
     name_opt: ?[]const u8,
 ) !void {
+    const alloc = context.alloc;
     const config = context.config;
-
-    var buf: [64]u8 = undefined;
-    const address = try util.bufAddressStr(&buf, addr);
 
     const name = name_opt orelse config.default_name;
 
-    try model.address.add(context, board, address);
+    var buf: [64]u8 = undefined;
+    const address: ?[]const u8 = if (config.log_post_ip)
+        try util.bufAddressStr(&buf, addr)
+    else
+        null;
+
+    var list = try std.ArrayList(u8).initCapacity(alloc, message.len);
+    defer list.deinit();
+
+    //cache the formatted post body
+    try root.view.util.writePostText(list.writer(), message);
+
     try util.exec(context, "add_post", .{
         post,
         thread,
         board.board,
         subject,
-        message,
+        list.items,
         address,
         email,
         name,
@@ -64,7 +73,7 @@ pub fn deleteList(
     const address = try util.bufAddressStr(&buf, addr);
 
     try util.beginTransaction(context);
-    defer util.endTransaction(context) catch {};
+    errdefer util.rollbackTransaction(context) catch {};
 
     for (list) |pair| {
         const post = pair[1];
@@ -76,20 +85,28 @@ pub fn deleteList(
             return DataError.InvalidCredentials;
         }
     }
+
+    util.endTransaction(context) catch {};
 }
 
 pub fn modDeleteList(
     context: Context,
     board: []const u8,
     list: [][2][]const u8,
-    user: data.User,
+    mod: data.User,
     reason: []const u8,
 ) !void {
     const q = "delete_post";
+
+    try util.beginTransaction(context);
+    errdefer util.rollbackTransaction(context) catch {};
+
     for (list) |pair| {
         const post = pair[1];
-        try util.exec(context, q, .{ reason, user.name, post, board });
+        try util.exec(context, q, .{ reason, mod.name, post, board });
     }
+
+    util.endTransaction(context) catch {};
 }
 
 pub fn eraseList(
@@ -97,16 +114,23 @@ pub fn eraseList(
     board: []const u8,
     list: [][2][]const u8,
 ) !void {
+    const q = "delete_post_permanent";
+
+    try util.beginTransaction(context);
+    errdefer util.rollbackTransaction(context) catch {};
+
     for (list) |pair| {
         const post = pair[1];
-        try util.exec(context, "delete_post_permanent", .{ post, board });
+        try util.exec(context, q, .{ post, board });
     }
+
+    util.endTransaction(context) catch {};
 }
 
 pub fn reportList(
     context: Context,
     global: bool,
-    board_name: []const u8,
+    board: []const u8,
     addr: std.net.Address,
     list: [][2][]const u8,
     reason: []const u8,
@@ -114,33 +138,56 @@ pub fn reportList(
     var buf: [64]u8 = undefined;
     const address = try util.bufAddressStr(&buf, addr);
 
-    const board: ?data.Board = if (global)
-        null
-    else
-        try model.board.one(context, board_name);
-    defer root.util.free(context.alloc, board);
-
-    try model.address.add(context, board, address);
+    try util.beginTransaction(context);
+    errdefer util.rollbackTransaction(context) catch {};
 
     for (list) |pair| {
         try util.exec(
             context,
             "add_report",
-            .{ board_name, pair[0], pair[1], reason, address, global },
+            .{ board, pair[0], pair[1], reason, address, global },
         );
     }
+
+    util.endTransaction(context) catch {};
 }
 
 pub fn isPoster(
     context: Context,
     board: []const u8,
     post: []const u8,
-    address: []const u8,
+    user: []const u8,
 ) !bool {
-    const opt = try util.one(i32, context, "is_poster", .{
-        board,
-        post,
-        address,
+    const q = "is_poster";
+    return util.oneSize(context, q, .{ board, post, user }) != 0;
+}
+
+pub fn deleteByAddress(
+    context: Context,
+    board_opt: ?[]const u8,
+    hash: []const u8,
+    mod: []const u8,
+    reason: []const u8,
+) !void {
+    const address = try model.address.get(context, board_opt, hash);
+    defer root.util.free(context.alloc, address);
+
+    try util.exec(context, "delete_address_posts", .{
+        .reason = reason,
+        .moderator = mod,
+        .address = address,
+        .board = board_opt,
     });
-    return opt.? != 0;
+}
+
+pub fn deleteByAddressPermanent(
+    context: Context,
+    hash: []const u8,
+) !void {
+    const address = try model.address.get(context, null, hash);
+    defer root.util.free(context.alloc, address);
+
+    std.log.info("address: {s}", .{address});
+
+    try util.exec(context, "delete_address_posts_permanent", .{address});
 }
