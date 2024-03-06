@@ -9,47 +9,5 @@
         "port": 443,
         "key": "key.pem",
         "cert": "cert.pem"
-    },
-    
-    "max_request_length": 4000000,
-    "max_message_length": 4096,
-    
-    "icon": null,
-    "favicon": "favicon.ico",
-    "title": "site-name",
-    "subtitle": "subtitle or description",
-    "banner": null,
-    "snippet_length": 128,
-    
-    "ppoll_timeout": 60,
-    
-    "no_file_thumbnail": "talk.png",
-    "default_file_thumbnail": "download.png",
-    "deleted_file_thumbnail": "trashcan.png",
-    
-    "log_post_ip": true,
-    "log_user_ip": true,
-    
-    "page_length": 10,
-    "bump_limit": 300,
-    "reply_count": 5,
-    "board_pages": 10,
-    
-    "max_latest_posts": 10,
-    "max_latest_images": 10,
-    
-    "max_user_invites": 30,
-    "invite_duration": 2592000,
-
-    "thumbnail_size": 250,
-    "default_name": "Anon",
-    "address_salt": "test_salt",
-    
-    "root_user": "test",
-    
-    "captcha": {
-        "font": "static/fonts/LiberationMono-Regular.ttf",
-        "duration": 3600,
-        "code_length": 6
     }
 }
