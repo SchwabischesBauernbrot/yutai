@@ -25,7 +25,7 @@ Configuring the server
 3. Register a user with the new root name
 
 Note that you have to restart the imageboard for the `config.json` changes to take effect.
-Consider updating `static/rules.html` and `static/faq.html`.
+Consider updating `src/view/global/rules.html` and `src/view/global/faq.html`.
 
 Running
 -------
